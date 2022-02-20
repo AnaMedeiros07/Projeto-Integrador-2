@@ -36,15 +36,18 @@ extern UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN Private defines */
 	extern uint8_t Rx_Buffer[]; //guarda as mensagens para a main;
-
 	extern int receive_flag;
 	extern int transmite_flag;
+
 /* USER CODE END Private defines */
 
 void MX_USART3_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 void init_UART3();
+void Write_Tx_Buffer(char *pdata,int flag);
+void Limpar_Dados();
+void Tx_Transmition();
 
 /* USER CODE END Prototypes */
 
@@ -53,4 +56,3 @@ void init_UART3();
 #endif
 
 #endif /* __USART_H__ */
-
