@@ -56,8 +56,9 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void init_UART3();
-void validar_comando(uint8_t *buffer);
-void Memory_read(uint8_t *buffer1);
+int validar_comando(uint8_t *buffer);
+int Memory_read(uint8_t *buffer1);
+int Memory_write(uint8_t *buffer1);
 
 uint8_t b =0x20;
 uint8_t esc =0x1B;
@@ -85,6 +86,7 @@ int main(void)
 
   init_UART3();
   receive_flag=0;
+  int prompt_flag = 1;
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -109,21 +111,35 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	 /* if(transmite_flag==0 && receive_flag==0)
-	  		{
+	  if(prompt_flag == 1)
+	  {
+		  Write_Tx_Buffer(">", 1);
 		  transmite_flag=1;
-		  	  printf(">\r\n");
-	  		}*/
+		  if(transmite_flag == 1){
+			 Tx_Transmition();
+			 while(transmite_flag == 1){}
+		  }
+		  prompt_flag = 0;
+	  }
 
 
 	  if(receive_flag==1)
 	  {
-
-		  printf("STM32: [\"%s\"]\n\r",Rx_Buffer);
+		  prompt_flag = 1;
+		  Write_Tx_Buffer(Rx_Buffer, 0);
+		  transmite_flag=1;
+		  if(transmite_flag == 1){
+			 Tx_Transmition();
+			 while(transmite_flag == 1){}
+		  }
 		  receive_flag=0;
-		  validar_comando(&Rx_Buffer);
-	  }
+		  transmite_flag = validar_comando(Rx_Buffer);
+		  if(transmite_flag == 1){
+			 Tx_Transmition();
+			 while(transmite_flag == 1){}
+		  }
 
+	  }
   }
     /* USER CODE BEGIN 3 */
 
@@ -171,14 +187,13 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-void validar_comando(uint8_t *buffer)
+int validar_comando(uint8_t *buffer)
  {
 	if(buffer[0] == 'M' && buffer[1] == 'R'){
-		 Memory_read(buffer);
+		return Memory_read(buffer);
 	}
-	else if(buffer[0] == 'M' && buffer[1] == 'W')
-	{
-
+	else if(buffer[0] == 'M' && buffer[1] == 'W'){
+		return Memory_write(buffer);
 	}
 	else if(buffer[0] == 'M' && buffer[1] == 'I')
 	{
@@ -216,16 +231,14 @@ void validar_comando(uint8_t *buffer)
 	{
 
 	}
-
+	return 0;
  }
 
-void Memory_read(uint8_t *buffer1)
+int Memory_read(uint8_t *buffer1)
 {
 	char addr[4];
 	char lenght[2];
-	char *aux_buffer;
 	char *ptr_teste1;
-	char *ptr_teste2;
 	long *ptr;
 
 	int counter=0;
@@ -247,18 +260,62 @@ void Memory_read(uint8_t *buffer1)
 		++counter;
 	}
 
-	long hex_addr=strtol(addr, ptr_teste1, 16);
-	long value=strtol(lenght, ptr_teste2, 16);
+	counter = 0;
+	counter_space = 0;
+	aux_counter = 0;
+
+	long hex_addr = strtol(addr, &ptr_teste1, 16);
+	long value = strtol(lenght, &ptr_teste1, 16);
 	ptr = hex_addr;
 
 	while(value>0)
 	{
-		itoa(*ptr, aux_buffer++, 16);
-		aux_buffer++;
-		++ptr;
-		--value;
+		itoa(*ptr, ptr_teste1, 16);
+		Write_Tx_Buffer(ptr_teste1, 0);
+		ptr++;
+		value--;
+	}
+	return 1;
+}
+
+int Memory_write(uint8_t *buffer1){
+	char addr[4], lenght[2], byte[2], *message, Mensagem[] = "Memory Write";
+
+	int counter = 0, aux_counter = 0, counter_space = 0;
+	long addr_ = 0, lenght_ = 0, byte_ = 0, *ptr;
+
+	while(buffer1[counter]!='\0'){
+		if(buffer1[counter]==b){
+			++counter_space;
+			aux_counter=0;
+		}
+		else if(counter_space==1)
+			addr[aux_counter++]=buffer1[counter];
+		else if(counter_space==2)
+			lenght[aux_counter++]=buffer1[counter];
+		else if(counter_space == 3)
+			byte[aux_counter++] = buffer1[counter];
+		++counter;
 	}
 
+	counter = 0;
+	aux_counter = 0;
+	counter_space = 0;
+
+	addr_ = strtol(addr, &message,16);
+	lenght_ = strtol(lenght, &message, 16);
+	byte_ = strtol(byte, &message,16);
+	ptr = addr_;
+
+	while(lenght_> 0){
+		*ptr = byte_;
+		ptr++;
+		lenght_--;
+	}
+
+	Write_Tx_Buffer(Mensagem, 0);
+
+	return 1;
 }
 /* USER CODE END 4 */
 
@@ -293,4 +350,3 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
