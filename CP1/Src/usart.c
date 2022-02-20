@@ -26,7 +26,12 @@
 #include "stdbool.h"
 	uint8_t UART3Rx_Buffer[256]; //guarda as mensagens para a main;
 	uint8_t Rx_Buffer[256];
+	char UART3Tx_Buffer[256];
+	uint8_t Tx_Buffer[256];
+
 	int receive_flag= 0;
+	int tamanho;
+	uint8_t index_ = 0;
 	volatile uint8_t UART3Rx_index=0;// index do ultimo caracter
 	int transmite_flag =0;
 /* USER CODE END 0 */
@@ -140,6 +145,7 @@ void init_UART3()
 		receive_flag=0;
 		transmite_flag=0;
 	}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 {
     if(huart->Instance == USART3){
@@ -158,6 +164,58 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 
         }
     }
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
+	if(huart->Instance == USART3){
+		if(transmite_flag == 1){
+			if(Tx_Buffer[index_] != '\0'){
+				HAL_UART_Transmit_IT(&huart3, &Tx_Buffer[index_], 1);
+				index_++;
+				index_ &= ~(1<<7);
+			}
+			else{
+				transmite_flag = 0;
+				Limpar_Dados();
+
+			}
+		}
+	}
+}
+
+
+
+void Write_Tx_Buffer(char *pdata, int flag){
+	int local_index = 0;
+	while(pdata[local_index] != '\0'){
+		Tx_Buffer[tamanho] = pdata[local_index];
+		local_index++;
+		tamanho++;
+	}
+
+	if(flag == 0)
+		Tx_Buffer[tamanho++] = '\r';
+	else
+		Tx_Buffer[tamanho++] = ' ';
+
+	local_index = 0;
+}
+
+void Tx_Transmition(){
+	if(Tx_Buffer[index_] != '\0'){
+		HAL_UART_Transmit_IT(&huart3,&Tx_Buffer[index_], 1);
+		index_++;
+	}
+}
+
+void Limpar_Dados(){
+	int local_index = 0;
+	tamanho = 0;
+	index_ = 0;
+	while(Tx_Buffer[local_index] != '\0'){
+		Tx_Buffer[local_index++] = '\0';
+	}
+
 }
 
 #ifdef __GNUC__
