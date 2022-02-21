@@ -27,7 +27,7 @@
 	uint8_t UART3Rx_Buffer[256]; //guarda as mensagens para a main;
 	uint8_t Rx_Buffer[256];
 	char UART3Tx_Buffer[256];
-	uint8_t Tx_Buffer[256];
+	uint8_t Tx_Buffer[];
 
 	int receive_flag= 0;
 	int tamanho;
