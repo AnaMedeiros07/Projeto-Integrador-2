@@ -1,4 +1,5 @@
 
+
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
@@ -147,6 +148,7 @@ int main(void)
 			 Tx_Transmition();
 			 while(transmite_flag == 1){}
 		  }
+		  Limpar_Dados();
 
 	  }
   }
@@ -396,7 +398,7 @@ int Make_Pin_Output(uint8_t *buffer1){
 	char lenght1[4] = {"0"}, lenght2[4] = {"0"}, lenght3[4] = {"0"};
 	char *binary;
 	int counter=0, aux_counter=0, counter_space=0;
-	long hex_addr = 0, value1 = 0, value2 = 0, value = 0;
+	unsigned long int hex_addr = 0, value1 = 0, value2 = 0, value = 0;
 
 	while(buffer1[counter]!='\0')
 	{
@@ -496,13 +498,8 @@ int Read_Dig_Input(uint8_t *buffer1){
 	aux_counter = strlen(binary)-1;
 
 	while(aux_counter >= 0){
-		if(binary[counter] == '1'){
-			itoa(HAL_GPIO_ReadPin(Ports[hex_addr], Pins[aux_counter]), Message, 10);
-			Write_Tx_Buffer(Message, 1);
-		}
-		else{
-			Write_Tx_Buffer("0", 1);
-		}
+		itoa(HAL_GPIO_ReadPin(Ports[hex_addr], Pins[counter]), Message, 10);
+		Write_Tx_Buffer(Message, 1);
 		aux_counter--;
 		counter++;
 	}
@@ -511,7 +508,91 @@ int Read_Dig_Input(uint8_t *buffer1){
 }
 
 int Write_Dig_Output(uint8_t *buffer1){
+	char addr[4] = {"0"}, lenght[4] = {"0"}, bits[4] = {"0"};
+	char lenght1[2] = {"0"},lenght2[2] = {"0"}, bits1[2] = {"0"}, bits2[2] = {"0"};
+	char *t;
+	char *Message = "Write Digital Output";
+	int counter=0, aux_counter=0, counter_space=0;
+	int aux_counter1 = 0;
+	long hex_addr = 0, value = 0, bits_ = 0;
+	long value1 = 0, value2 = 0, bits_1 = 0, bits_2 = 0;
 
+	while(buffer1[counter]!='\0')
+	{
+		if(buffer1[counter]==b)
+		{
+			++counter_space;
+			aux_counter=0;
+		}
+		else if(counter_space==1)
+			addr[aux_counter++]=buffer1[counter];
+
+		else if(counter_space==2)
+			lenght[aux_counter++]=buffer1[counter];
+		else if(counter_space == 3)
+			bits[aux_counter++]=buffer1[counter];
+		++counter;
+	}
+
+	counter = 0;
+	counter_space = 0;
+
+	hex_addr = strtol(addr, &t, 16);
+
+	if((aux_counter = strlen(lenght)) <=2)
+		value = strtol(lenght, &t, 16);
+	else{
+		lenght1[0] = lenght[0];
+		lenght1[1] = lenght[1];
+		lenght2[0] = lenght[2];
+		lenght2[1] = lenght[3];
+
+		value1 = strtol(lenght1, &t, 16);
+		value2 = strtol(lenght2, &t, 16);
+		value = value1 << 8;
+		value |= value2;
+	}
+
+	if((aux_counter1 = strlen(bits)) <=2)
+		bits_ = strtol(bits, &t, 16);
+	else{
+		bits1[0] = bits[0];
+		bits1[1] = bits[1];
+		bits2[0] = bits[2];
+		bits2[1] = bits[3];
+
+		bits_1 = strtol(bits1, &t, 16);
+		bits_2 = strtol(bits2, &t, 16);
+		bits_ = bits_1 << 8;
+		bits_|= bits_2;
+	}
+
+unsigned long int shift1 ;
+
+	aux_counter = 15;
+	int shift;
+
+	while(aux_counter >= 0){
+		shift =value >> aux_counter;
+		if(shift & 1){
+			shift1=bits_>>aux_counter;
+			if( shift1 & 1)
+			{
+					HAL_GPIO_WritePin(Ports[hex_addr], Pins[aux_counter], (GPIO_PinState)1);
+					printf("1\n\r");
+			}
+			else
+			{
+				printf("0\n\r");
+				HAL_GPIO_WritePin(Ports[hex_addr], Pins[aux_counter], (GPIO_PinState)0);
+			}
+
+		}
+		counter++;
+		aux_counter--;
+	}
+	Write_Tx_Buffer(Message, 0);
+	return 1;
 }
 /* USER CODE END 4 */
 
