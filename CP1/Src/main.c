@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -26,6 +27,7 @@
 #include"stdio.h"
 #include "stdlib.h"
 #include "string.h"
+#include "math.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -63,12 +65,19 @@ int Memory_write(uint8_t *buffer1);
 int Make_Pin_Input(uint8_t *buffer1);
 int Make_Pin_Output(uint8_t *buffer1);
 int Read_Dig_Input(uint8_t *buffer1);
+int Aalog_Read(uint8_t *buffer1);
 int Version();
 int Help();
 void Print();
+void config_ADC (int pin);
 
 GPIO_TypeDef*  Ports[]={GPIOA,GPIOB,GPIOC,GPIOD,GPIOE,GPIOF,GPIOG,GPIOI,GPIOJ,GPIOK};
 uint16_t Pins[]={GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4,GPIO_PIN_5,GPIO_PIN_6,GPIO_PIN_7,GPIO_PIN_8,GPIO_PIN_9,GPIO_PIN_10,GPIO_PIN_11,GPIO_PIN_12,GPIO_PIN_13,GPIO_PIN_14,GPIO_PIN_15};
+//ADC_TypeDef* adc[]= {ADC1,ADC2,ADC3};
+//ADC_HandleTypeDef* handlers[]={hadc1,hacd2,hadc3};
+uint32_t AdcChannels[]={ADC_CHANNEL_0,ADC_CHANNEL_1,ADC_CHANNEL_2,ADC_CHANNEL_3,ADC_CHANNEL_4,ADC_CHANNEL_5,ADC_CHANNEL_6,ADC_CHANNEL_7,ADC_CHANNEL_8,ADC_CHANNEL_9,ADC_CHANNEL_10,ADC_CHANNEL_11,ADC_CHANNEL_12,ADC_CHANNEL_13,ADC_CHANNEL_14,ADC_CHANNEL_15,ADC_CHANNEL_16,ADC_CHANNEL_17,ADC_CHANNEL_18};
+uint16_t gpio_adc_pins[]={GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4,GPIO_PIN_5,GPIO_PIN_6,GPIO_PIN_7,GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4,GPIO_PIN_5};
+GPIO_TypeDef* gpio_adc_ports[]={GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOB,GPIOB,GPIOC,GPIOC,GPIOC,GPIOC,GPIOC,GPIOC};
 uint8_t b =0x20;
 
 
@@ -107,6 +116,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 
 
@@ -615,6 +625,95 @@ void Print(){
 		Tx_Transmition();
 		while(transmite_flag == 1){}
 	 }
+}
+int AnalogRead(uint8_t *buffer1)
+{
+		char addr[4] = {"0"}, *Message;
+		int counter=0, aux_counter=0, counter_space=0;
+		long hex_addr = 0, value1 = 0, value2 = 0, value = 0;
+
+		while(buffer1[counter]!='\0')
+		{
+			if(buffer1[counter]==b)
+			{
+				++counter_space;
+				aux_counter=0;
+			}
+			else if(counter_space==1)
+				addr[aux_counter++]=buffer1[counter];
+		}
+
+		counter = 0;
+		counter_space = 0;
+
+		hex_addr = strtol(addr, &t, 16);
+		int decimal;
+		int shift;
+
+			while(aux_counter >= 0){
+				shift =value >> aux_counter;
+				if(shift & 1){
+					shift1=bits_>>aux_counter;
+					if( shift1 & 1)
+						decimal+=pow(2,counter);
+				}
+				counter++;
+				aux_counter--;
+			}
+			config_ADC(decimal);
+			HAL_ADC_Start_IT(hadc1);
+		return 1;
+}
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
+{
+	uint16_t adc_value;
+	adc_value = HAL_ADC_GetValue(hadc1);
+	HAL_UART_Transmit(&huart2, (uint8_t*)(&adc_alue), 2, 100);
+}
+void config_ADC(int pin)
+{
+	 GPIO_InitTypeDef gpioInit;
+
+	    GPIOC_CLK_ENABLE();
+	    ADC1_CLK_ENABLE();
+
+	    gpioInit.Pin =gpio_adc_pins[pino];
+	    gpioInit.Mode = GPIO_MODE_ANALOG;
+	    gpioInit.Pull = GPIO_NOPULL;
+	    HAL_GPIO_Init(gpio_adc_ports[pino], &gpioInit);
+
+	    HAL_NVIC_SetPriority(ADC_IRQn, 0, 0);
+	    HAL_NVIC_EnableIRQ(ADC_IRQn);
+
+	    ADC_ChannelConfTypeDef adcChannel;
+
+	    g_AdcHandle.Instance = ADC1;
+
+	    hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
+	    hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+	    hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+	    hadc1.Init.ContinuousConvMode = DISABLE;
+	    hadc1.Init.DiscontinuousConvMode = DISABLE;
+	    hadc1.Init.NbrOfDiscConversion = 0;
+	    hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+	    hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+	    hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+	    hadc1.Init.NbrOfConversion = 1;
+	    hadc1.Init.DMAContinuousRequests = DISABLE;
+	    hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+
+	    HAL_ADC_Init(&g_AdcHandle);
+
+	    adcChannel.Channel = AdcChannels[pino];
+	    adcChannel.Rank =  ADC_REGULAR_RANK_1;
+	    adcChannel.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+	    adcChannel.Offset = 0;
+
+	    if (HAL_ADC_ConfigChannel(&hadc1, &adcChannel) != HAL_OK)
+	    {
+	        asm("bkpt 255");
+	    }
+
 }
 /* USER CODE END 4 */
 
