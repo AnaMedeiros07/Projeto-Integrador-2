@@ -1,5 +1,3 @@
-
-
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
@@ -65,15 +63,14 @@ int Memory_write(uint8_t *buffer1);
 int Make_Pin_Input(uint8_t *buffer1);
 int Make_Pin_Output(uint8_t *buffer1);
 int Read_Dig_Input(uint8_t *buffer1);
-char help[]="MR = Memory Read\n"
-		    "MW = Memory Write"
-			"MI=Make port pin Input\n";
+int Version();
+int Help();
+void Print();
 
 GPIO_TypeDef*  Ports[]={GPIOA,GPIOB,GPIOC,GPIOD,GPIOE,GPIOF,GPIOG,GPIOI,GPIOJ,GPIOK};
 uint16_t Pins[]={GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4,GPIO_PIN_5,GPIO_PIN_6,GPIO_PIN_7,GPIO_PIN_8,GPIO_PIN_9,GPIO_PIN_10,GPIO_PIN_11,GPIO_PIN_12,GPIO_PIN_13,GPIO_PIN_14,GPIO_PIN_15};
 uint8_t b =0x20;
-uint8_t esc =0x1B;
-uint8_t bckspc =0x08;
+
 
 
 /* USER CODE END 0 */
@@ -110,8 +107,6 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
-  init_UART3();
-  receive_flag=0;
   /* USER CODE BEGIN 2 */
 
 
@@ -125,12 +120,9 @@ int main(void)
 	  {
 		  Write_Tx_Buffer(">", 1);
 		  transmite_flag=1;
-		  if(transmite_flag == 1){
-			 Tx_Transmition();
-			 while(transmite_flag == 1){}
-		  }
-		  prompt_flag = 0;
+		  Print();
 	  }
+	  prompt_flag = 0;
 
 
 	  if(receive_flag==1)
@@ -138,17 +130,11 @@ int main(void)
 		  prompt_flag = 1;
 		  Write_Tx_Buffer(Rx_Buffer, 0);
 		  transmite_flag=1;
-		  if(transmite_flag == 1){
-			 Tx_Transmition();
-			 while(transmite_flag == 1){}
-		  }
+		  Print();
 		  receive_flag=0;
 		  transmite_flag = validar_comando(Rx_Buffer);
-		  if(transmite_flag == 1){
-			 Tx_Transmition();
-			 while(transmite_flag == 1){}
-		  }
-		  Limpar_Dados();
+		  Print();
+		  Limpar_Rx_Buffer();
 
 	  }
   }
@@ -224,26 +210,13 @@ int validar_comando(uint8_t *buffer)
 	{
 
 	}
-	else if(buffer[0] == b)
-	{
-
-	}
-	else if(buffer[0] == esc)
-	{
-
-	}
-	else if(buffer[0] == '$')
-	{
-
-	}
 	else if(buffer[0] == 'V' && buffer[1]=='E' && buffer[2]=='R')
 	{
-
+		return Version();
 	}
 	else if(buffer[0] == '?')
 	{
-		 Write_Tx_Buffer(help, 0);
-		 return 1;
+		 return Help();
 	}
 	return 0;
  }
@@ -357,7 +330,7 @@ int Make_Pin_Input(uint8_t *buffer1){
 	counter = 0;
 	counter_space = 0;
 
-	hex_addr = strtol(addr, &binary, 16);
+	hex_addr = strtol(addr, &binary, 10);
 	if((aux_counter = strlen(lenght1)) <=2)
 		value = strtol(lenght1, &binary, 16);
 	else{
@@ -418,7 +391,7 @@ int Make_Pin_Output(uint8_t *buffer1){
 	counter = 0;
 	counter_space = 0;
 
-	hex_addr = strtol(addr, &binary, 16);
+	hex_addr = strtol(addr, &binary, 10);
 	if((aux_counter = strlen(lenght1)) <=2)
 		value = strtol(lenght1, &binary, 16);
 	else{
@@ -498,7 +471,7 @@ int Read_Dig_Input(uint8_t *buffer1){
 	aux_counter = strlen(binary)-1;
 
 	while(aux_counter >= 0){
-		itoa(HAL_GPIO_ReadPin(Ports[hex_addr], Pins[counter]), Message, 10);
+		itoa(HAL_GPIO_ReadPin(Ports[hex_addr], Pins[aux_counter]), Message, 10);
 		Write_Tx_Buffer(Message, 1);
 		aux_counter--;
 		counter++;
@@ -577,22 +550,71 @@ unsigned long int shift1 ;
 		if(shift & 1){
 			shift1=bits_>>aux_counter;
 			if( shift1 & 1)
-			{
-					HAL_GPIO_WritePin(Ports[hex_addr], Pins[aux_counter], (GPIO_PinState)1);
-					printf("1\n\r");
-			}
+					HAL_GPIO_WritePin(Ports[hex_addr], Pins[aux_counter],  GPIO_PIN_SET);
 			else
-			{
-				printf("0\n\r");
-				HAL_GPIO_WritePin(Ports[hex_addr], Pins[aux_counter], (GPIO_PinState)0);
-			}
-
+				HAL_GPIO_WritePin(Ports[hex_addr], Pins[aux_counter], GPIO_PIN_RESET );
 		}
 		counter++;
 		aux_counter--;
 	}
 	Write_Tx_Buffer(Message, 0);
 	return 1;
+}
+
+int Version(){
+	Write_Tx_Buffer("v1.6 grupo 2 PIEEIC-II DEIC UM2022",0);
+	return 1;
+}
+
+int Help(){
+	Write_Tx_Buffer("MR -> Memory Read", 0);
+	transmite_flag=1;
+	Print();
+
+	Write_Tx_Buffer("MW -> Memory Write",0);
+	transmite_flag=1;
+	Print();
+
+	Write_Tx_Buffer("MI -> Make Port Pin Input",0);
+	transmite_flag=1;
+	Print();
+
+	Write_Tx_Buffer("MO -> Make Port Pin Output",0);
+	transmite_flag=1;
+	Print();
+
+	Write_Tx_Buffer("RD -> Read Digital Input",0);
+	transmite_flag=1;
+	Print();
+
+	Write_Tx_Buffer("WD -> Write Digital Output",0);
+	transmite_flag=1;
+	Print();
+
+	Write_Tx_Buffer("BackSpace -> Limpa ultimo caracter recebido", 0);
+	transmite_flag=1;
+	Print();
+
+	Write_Tx_Buffer("ESC -> Limpa todos caracteres recebidos", 0);
+	transmite_flag=1;
+	Print();
+
+	Write_Tx_Buffer("$ -> Limpa todos os caracteres recebidos e repete o ultimo comando válido", 0);
+	transmite_flag=1;
+	Print();
+
+	Write_Tx_Buffer("VER -> Ver informacoes do projeto", 0);
+	transmite_flag=1;
+	Print();
+
+	return 0;
+}
+
+void Print(){
+	 if(transmite_flag == 1){
+		Tx_Transmition();
+		while(transmite_flag == 1){}
+	 }
 }
 /* USER CODE END 4 */
 
@@ -627,3 +649,4 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
+
