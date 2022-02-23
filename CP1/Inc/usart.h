@@ -46,9 +46,10 @@ void MX_USART3_UART_Init(void);
 /* USER CODE BEGIN Prototypes */
 void init_UART3();
 void Write_Tx_Buffer(char *pdata,int flag);
-void Limpar_Dados();
+void Limpar_Tx_Buffer();
 void Tx_Transmition();
-
+void Limpar_Rx_Buffer_Old();
+void Limpar_Rx_Buffer();
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
