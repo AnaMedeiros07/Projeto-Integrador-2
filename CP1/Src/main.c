@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "adc.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -65,19 +64,20 @@ int Memory_write(uint8_t *buffer1);
 int Make_Pin_Input(uint8_t *buffer1);
 int Make_Pin_Output(uint8_t *buffer1);
 int Read_Dig_Input(uint8_t *buffer1);
-int Aalog_Read(uint8_t *buffer1);
+int Analog_Read(uint8_t *buffer1);
 int Version();
 int Help();
 void Print();
-void config_ADC (int pin);
+int config_ADC (int pin);
+void ADC_Desconfig(int pin);
 
+ADC_HandleTypeDef hadc1;
 GPIO_TypeDef*  Ports[]={GPIOA,GPIOB,GPIOC,GPIOD,GPIOE,GPIOF,GPIOG,GPIOI,GPIOJ,GPIOK};
 uint16_t Pins[]={GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4,GPIO_PIN_5,GPIO_PIN_6,GPIO_PIN_7,GPIO_PIN_8,GPIO_PIN_9,GPIO_PIN_10,GPIO_PIN_11,GPIO_PIN_12,GPIO_PIN_13,GPIO_PIN_14,GPIO_PIN_15};
-//ADC_TypeDef* adc[]= {ADC1,ADC2,ADC3};
-//ADC_HandleTypeDef* handlers[]={hadc1,hacd2,hadc3};
 uint32_t AdcChannels[]={ADC_CHANNEL_0,ADC_CHANNEL_1,ADC_CHANNEL_2,ADC_CHANNEL_3,ADC_CHANNEL_4,ADC_CHANNEL_5,ADC_CHANNEL_6,ADC_CHANNEL_7,ADC_CHANNEL_8,ADC_CHANNEL_9,ADC_CHANNEL_10,ADC_CHANNEL_11,ADC_CHANNEL_12,ADC_CHANNEL_13,ADC_CHANNEL_14,ADC_CHANNEL_15,ADC_CHANNEL_16,ADC_CHANNEL_17,ADC_CHANNEL_18};
 uint16_t gpio_adc_pins[]={GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4,GPIO_PIN_5,GPIO_PIN_6,GPIO_PIN_7,GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4,GPIO_PIN_5};
 GPIO_TypeDef* gpio_adc_ports[]={GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOB,GPIOB,GPIOC,GPIOC,GPIOC,GPIOC,GPIOC,GPIOC};
+int adc_validation = 0;
 uint8_t b =0x20;
 
 
@@ -101,9 +101,6 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
-  init_UART3();
-  receive_flag=0;
-  int prompt_flag = 1;
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -116,9 +113,10 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
-  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-
+  init_UART3();
+  receive_flag=0;
+  int prompt_flag = 1;
 
   /* USER CODE END 2 */
 
@@ -128,7 +126,7 @@ int main(void)
   {
 	  if(prompt_flag == 1)
 	  {
-		  Write_Tx_Buffer(">", 1);
+		  Write_Tx_Buffer("L", 1);
 		  transmite_flag=1;
 		  Print();
 	  }
@@ -185,7 +183,7 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
@@ -218,7 +216,7 @@ int validar_comando(uint8_t *buffer)
 	}
 	else if(buffer[0] == 'R' && buffer[1] == 'A')
 	{
-
+		return Analog_Read(buffer);
 	}
 	else if(buffer[0] == 'V' && buffer[1]=='E' && buffer[2]=='R')
 	{
@@ -626,10 +624,10 @@ void Print(){
 		while(transmite_flag == 1){}
 	 }
 }
-int AnalogRead(uint8_t *buffer1)
+int Analog_Read(uint8_t *buffer1)
 {
 		char addr[4] = {"0"}, *Message;
-		int counter=0, aux_counter=0, counter_space=0;
+		int counter=0, aux_counter=0, counter_space=0, validation_flag = 0;
 		long hex_addr = 0, value1 = 0, value2 = 0, value = 0;
 
 		while(buffer1[counter]!='\0')
@@ -641,80 +639,118 @@ int AnalogRead(uint8_t *buffer1)
 			}
 			else if(counter_space==1)
 				addr[aux_counter++]=buffer1[counter];
+			counter++;
 		}
 
 		counter = 0;
 		counter_space = 0;
 
-		hex_addr = strtol(addr, &t, 16);
+		hex_addr = strtol(addr, NULL, 16);
 		int decimal;
-		int shift;
+		int shift, shift1;
 
-			while(aux_counter >= 0){
-				shift =value >> aux_counter;
-				if(shift & 1){
-					shift1=bits_>>aux_counter;
-					if( shift1 & 1)
-						decimal+=pow(2,counter);
-				}
-				counter++;
-				aux_counter--;
-			}
-			config_ADC(decimal);
-			HAL_ADC_Start_IT(hadc1);
+		if(config_ADC(hex_addr) == 0)
+			return 0;
+		while(adc_validation != 1);
+		ADC_Desconfig(hex_addr);
 		return 1;
 }
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
 {
-	uint16_t adc_value;
+	uint32_t adc_value = 0;
+	char result[5];
+
 	adc_value = HAL_ADC_GetValue(hadc1);
-	HAL_UART_Transmit(&huart2, (uint8_t*)(&adc_alue), 2, 100);
-}
-void config_ADC(int pin)
+	itoa(adc_value,result,16);
+
+	Write_Tx_Buffer(result, 0);
+	adc_validation = 1;
+
+ }
+int config_ADC(int pin)
 {
-	 GPIO_InitTypeDef gpioInit;
+	 GPIO_InitTypeDef gpioInit = {0};
+	 ADC_ChannelConfTypeDef adcChannel = {0};
 
-	    GPIOC_CLK_ENABLE();
-	    ADC1_CLK_ENABLE();
+	  hadc1.Instance = ADC1;
+	  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
+	  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+	  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+	  hadc1.Init.ContinuousConvMode = DISABLE;
+	  hadc1.Init.DiscontinuousConvMode = DISABLE;
+	  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+	  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+	  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+	  hadc1.Init.NbrOfConversion = 1;
+	  hadc1.Init.DMAContinuousRequests = DISABLE;
+	  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+	  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+	  {
+	    return 0;
+	  }
 
-	    gpioInit.Pin =gpio_adc_pins[pino];
-	    gpioInit.Mode = GPIO_MODE_ANALOG;
-	    gpioInit.Pull = GPIO_NOPULL;
-	    HAL_GPIO_Init(gpio_adc_ports[pino], &gpioInit);
+	 adcChannel.Channel = AdcChannels[pin];
+	 adcChannel.Rank =  ADC_REGULAR_RANK_1;
+	 adcChannel.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+	 adcChannel.Offset = 0;
 
-	    HAL_NVIC_SetPriority(ADC_IRQn, 0, 0);
-	    HAL_NVIC_EnableIRQ(ADC_IRQn);
+	 __HAL_RCC_ADC1_CLK_ENABLE();
+	 switch(pin){
+	 	 case 0:
+	 	 case 1:
+	 	 case 2:
+	 	 case 3:
+	 	 case 4:
+	 	 case 5:
+	 	 case 6:
+	 	 case 7:
+	 		 __HAL_RCC_GPIOA_CLK_ENABLE();
+	 		 break;
+	 	 case 8:
+	 	 case 9:
+	 		 __HAL_RCC_GPIOB_CLK_ENABLE();
+	 		 break;
+	 	 case 10:
+	 	 case 11:
+	 	 case 12:
+	 	 case 13:
+	 	 case 14:
+	 	 case 15:
+	 		 __HAL_RCC_GPIOC_CLK_ENABLE();
+	 		 break;
+	 	 default:
+	 		 return 0;
 
-	    ADC_ChannelConfTypeDef adcChannel;
+	 }
 
-	    g_AdcHandle.Instance = ADC1;
 
-	    hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
-	    hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-	    hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-	    hadc1.Init.ContinuousConvMode = DISABLE;
-	    hadc1.Init.DiscontinuousConvMode = DISABLE;
-	    hadc1.Init.NbrOfDiscConversion = 0;
-	    hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-	    hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-	    hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-	    hadc1.Init.NbrOfConversion = 1;
-	    hadc1.Init.DMAContinuousRequests = DISABLE;
-	    hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
 
-	    HAL_ADC_Init(&g_AdcHandle);
+	 gpioInit.Pin =gpio_adc_pins[pin];
+	 gpioInit.Mode = GPIO_MODE_ANALOG;
+	 gpioInit.Pull = GPIO_NOPULL;
+	 HAL_GPIO_Init(gpio_adc_ports[pin], &gpioInit);
 
-	    adcChannel.Channel = AdcChannels[pino];
-	    adcChannel.Rank =  ADC_REGULAR_RANK_1;
-	    adcChannel.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-	    adcChannel.Offset = 0;
+	 HAL_NVIC_SetPriority(ADC_IRQn, 0, 0);
+	 HAL_NVIC_EnableIRQ(ADC_IRQn);
 
-	    if (HAL_ADC_ConfigChannel(&hadc1, &adcChannel) != HAL_OK)
-	    {
-	        asm("bkpt 255");
-	    }
+	 if (HAL_ADC_ConfigChannel(&hadc1, &adcChannel) != HAL_OK){
+		 return 0;
+	 }
+
+	 if(HAL_ADC_Start_IT(&hadc1) != HAL_OK){
+		 return 0;
+	 }
+
+	 return 1;
 
 }
+
+void ADC_Desconfig(int pin){
+	__HAL_RCC_ADC1_CLK_DISABLE();
+	HAL_GPIO_DeInit(gpio_adc_ports[pin], gpio_adc_pins[pin]);
+	HAL_NVIC_DisableIRQ(ADC_IRQn);
+}
+
 /* USER CODE END 4 */
 
 /**
