@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -72,13 +73,15 @@ int config_ADC (int pin);
 void ADC_Desconfig(int pin);
 
 ADC_HandleTypeDef hadc1;
+ADC_ChannelConfTypeDef adcChannel = {0};
 GPIO_TypeDef*  Ports[]={GPIOA,GPIOB,GPIOC,GPIOD,GPIOE,GPIOF,GPIOG,GPIOI,GPIOJ,GPIOK};
 uint16_t Pins[]={GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4,GPIO_PIN_5,GPIO_PIN_6,GPIO_PIN_7,GPIO_PIN_8,GPIO_PIN_9,GPIO_PIN_10,GPIO_PIN_11,GPIO_PIN_12,GPIO_PIN_13,GPIO_PIN_14,GPIO_PIN_15};
-uint32_t AdcChannels[]={ADC_CHANNEL_0,ADC_CHANNEL_1,ADC_CHANNEL_2,ADC_CHANNEL_3,ADC_CHANNEL_4,ADC_CHANNEL_5,ADC_CHANNEL_6,ADC_CHANNEL_7,ADC_CHANNEL_8,ADC_CHANNEL_9,ADC_CHANNEL_10,ADC_CHANNEL_11,ADC_CHANNEL_12,ADC_CHANNEL_13,ADC_CHANNEL_14,ADC_CHANNEL_15,ADC_CHANNEL_16,ADC_CHANNEL_17,ADC_CHANNEL_18};
+uint32_t AdcChannels[]={ADC_CHANNEL_0,ADC_CHANNEL_1,ADC_CHANNEL_2,ADC_CHANNEL_3,ADC_CHANNEL_4,ADC_CHANNEL_5,ADC_CHANNEL_6,ADC_CHANNEL_7,ADC_CHANNEL_8,ADC_CHANNEL_9,ADC_CHANNEL_10,ADC_CHANNEL_11,ADC_CHANNEL_12,ADC_CHANNEL_13,ADC_CHANNEL_14,ADC_CHANNEL_15,ADC_CHANNEL_TEMPSENSOR,ADC_CHANNEL_17,ADC_CHANNEL_18};
 uint16_t gpio_adc_pins[]={GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4,GPIO_PIN_5,GPIO_PIN_6,GPIO_PIN_7,GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4,GPIO_PIN_5};
 GPIO_TypeDef* gpio_adc_ports[]={GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOB,GPIOB,GPIOC,GPIOC,GPIOC,GPIOC,GPIOC,GPIOC};
 int adc_validation = 0;
 uint8_t b =0x20;
+uint16_t memory_buffer[1024];
 
 
 
@@ -113,6 +116,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   init_UART3();
   receive_flag=0;
@@ -183,7 +187,7 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
@@ -233,9 +237,7 @@ int Memory_read(uint8_t *buffer1)
 {
 	char addr[2];
 	char lenght[2];
-	char *ptr_teste1;
-	long *ptr;
-
+	char ptr_teste1;
 	int counter=0;
 	int aux_counter=0;
 	int counter_space=0;
@@ -259,15 +261,14 @@ int Memory_read(uint8_t *buffer1)
 	counter_space = 0;
 	aux_counter = 0;
 
-	long hex_addr = strtol(addr, &ptr_teste1, 16);
-	long value = strtol(lenght, &ptr_teste1, 16);
-	ptr = hex_addr;
-
+	long hex_addr = strtol(addr, NULL, 16);
+	long value = strtol(lenght, NULL, 16);
+	char aux;
 	while(value>0)
 	{
-		itoa(*ptr, ptr_teste1, 16);
-		Write_Tx_Buffer(ptr_teste1, 0);
-		ptr++;
+		itoa(memory_buffer[hex_addr], ptr_teste1, 16);
+		Write_Tx_Buffer(memory_buffer[hex_addr], 0);
+		hex_addr++;
 		value--;
 	}
 	return 1;
@@ -277,7 +278,8 @@ int Memory_write(uint8_t *buffer1){
 	char addr[4], lenght[2], byte[2], *message, Mensagem[] = "Memory Write";
 
 	int counter = 0, aux_counter = 0, counter_space = 0;
-	long addr_ = 0, lenght_ = 0, byte_ = 0, *ptr;
+	long addr_ = 0, lenght_ = 0;
+	uint16_t byte_ = 0;
 
 	while(buffer1[counter]!='\0'){
 		if(buffer1[counter]==b){
@@ -299,13 +301,13 @@ int Memory_write(uint8_t *buffer1){
 
 	addr_ = strtol(addr, &message,16);
 	lenght_ = strtol(lenght, &message, 16);
-	byte_ = strtol(byte, &message,16);
-	ptr = addr_;
+	strcpy(byte_,byte);
 
 	while(lenght_> 0){
-		*ptr = byte_;
-		ptr++;
+		memory_buffer[addr_]=byte_;
+		addr_++;
 		lenght_--;
+		++counter;
 	}
 
 	Write_Tx_Buffer(Mensagem, 0);
@@ -626,9 +628,9 @@ void Print(){
 }
 int Analog_Read(uint8_t *buffer1)
 {
-		char addr[4] = {"0"}, *Message;
-		int counter=0, aux_counter=0, counter_space=0, validation_flag = 0;
-		long hex_addr = 0, value1 = 0, value2 = 0, value = 0;
+		char addr[4] = {"0"};
+		int counter=0, aux_counter=0, counter_space=0;
+		long hex_addr = 0;
 
 		while(buffer1[counter]!='\0')
 		{
@@ -646,8 +648,6 @@ int Analog_Read(uint8_t *buffer1)
 		counter_space = 0;
 
 		hex_addr = strtol(addr, NULL, 16);
-		int decimal;
-		int shift, shift1;
 
 		if(config_ADC(hex_addr) == 0)
 			return 0;
@@ -659,10 +659,20 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
 {
 	uint32_t adc_value = 0;
 	char result[5];
-
+	double temp;
 	adc_value = HAL_ADC_GetValue(hadc1);
-	itoa(adc_value,result,16);
 
+
+	if( adcChannel.Channel == ADC_CHANNEL_TEMPSENSOR)
+	{
+		temp=((((double)adc_value*3300/4095)-760.0)/2.5)+25;
+		snprintf(result, 5, "%f", temp);
+	}
+	else
+	{
+		 temp=((double)adc_value*3.3/4095);
+		 snprintf(result, 5, "%f", temp);
+	}
 	Write_Tx_Buffer(result, 0);
 	adc_validation = 1;
 
@@ -670,7 +680,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
 int config_ADC(int pin)
 {
 	 GPIO_InitTypeDef gpioInit = {0};
-	 ADC_ChannelConfTypeDef adcChannel = {0};
 
 	  hadc1.Instance = ADC1;
 	  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
@@ -718,13 +727,13 @@ int config_ADC(int pin)
 	 	 case 15:
 	 		 __HAL_RCC_GPIOC_CLK_ENABLE();
 	 		 break;
+	 	 case 16:
+	 		  __HAL_RCC_GPIOD_CLK_ENABLE();
+	 		  break;
 	 	 default:
 	 		 return 0;
 
 	 }
-
-
-
 	 gpioInit.Pin =gpio_adc_pins[pin];
 	 gpioInit.Mode = GPIO_MODE_ANALOG;
 	 gpioInit.Pull = GPIO_NOPULL;
