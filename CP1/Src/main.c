@@ -126,7 +126,7 @@ int main(void)
   {
 	  if(prompt_flag == 1)
 	  {
-		  Write_Tx_Buffer("L", 1);
+		  Write_Tx_Buffer(">", 1);
 		  transmite_flag=1;
 		  Print();
 	  }
