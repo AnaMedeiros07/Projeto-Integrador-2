@@ -59,7 +59,8 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void init_UART3();
-int validar_comando(uint8_t *buffer);
+int Check_Comand(uint8_t *buffer);
+int Invalid();
 int Memory_read(uint8_t *buffer1);
 int Memory_write(uint8_t *buffer1);
 int Make_Pin_Input(uint8_t *buffer1);
@@ -81,9 +82,7 @@ uint16_t gpio_adc_pins[]={GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4
 GPIO_TypeDef* gpio_adc_ports[]={GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOB,GPIOB,GPIOC,GPIOC,GPIOC,GPIOC,GPIOC,GPIOC};
 int adc_validation = 0;
 uint8_t b =0x20;
-uint16_t memory_buffer[1024];
-
-
+uint8_t memory_buffer[1024];
 
 /* USER CODE END 0 */
 
@@ -116,7 +115,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
-  MX_ADC1_Init();
+  //MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   init_UART3();
   receive_flag=0;
@@ -144,7 +143,7 @@ int main(void)
 		  transmite_flag=1;
 		  Print();
 		  receive_flag=0;
-		  transmite_flag = validar_comando(Rx_Buffer);
+		  transmite_flag = Check_Comand(Rx_Buffer);
 		  Print();
 		  Limpar_Rx_Buffer();
 
@@ -198,31 +197,31 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-int validar_comando(uint8_t *buffer)
+int Check_Comand(uint8_t *buffer)
  {
-	if(buffer[0] == 'M' && buffer[1] == 'R'){
+	if((buffer[0] == 'M' && buffer[1] == 'R') || (buffer[0] == 'm' && buffer[1] == 'r')){
 		return Memory_read(buffer);
 	}
-	else if(buffer[0] == 'M' && buffer[1] == 'W'){
+	else if((buffer[0] == 'M' && buffer[1] == 'W')|| (buffer[0] == 'm' && buffer[1] == 'w')){
 		return Memory_write(buffer);
 	}
-	else if(buffer[0] == 'M' && buffer[1] == 'I'){
+	else if((buffer[0] == 'M' && buffer[1] == 'I')|| (buffer[0] == 'm' && buffer[1] == 'i')){
 		return Make_Pin_Input(buffer);
 	}
-	else if(buffer[0] == 'M' && buffer[1] == 'O'){
+	else if((buffer[0] == 'M' && buffer[1] == 'O')|| (buffer[0] == 'm' && buffer[1] == 'o')){
 		return Make_Pin_Output(buffer);
 	}
-	else if(buffer[0] == 'R' && buffer[1] == 'D'){
+	else if((buffer[0] == 'R' && buffer[1] == 'D')|| (buffer[0] == 'r' && buffer[1] == 'd')){
 		return Read_Dig_Input(buffer);
 	}
-	else if(buffer[0] == 'W' && buffer[1] == 'D'){
+	else if((buffer[0] == 'W' && buffer[1] == 'D')|| (buffer[0] == 'w' && buffer[1] == 'd')){
 		return Write_Dig_Output(buffer);
 	}
-	else if(buffer[0] == 'R' && buffer[1] == 'A')
+	else if((buffer[0] == 'R' && buffer[1] == 'A')|| (buffer[0] == 'r' && buffer[1] == 'a'))
 	{
 		return Analog_Read(buffer);
 	}
-	else if(buffer[0] == 'V' && buffer[1]=='E' && buffer[2]=='R')
+	else if((buffer[0] == 'V' && buffer[1]=='E' && buffer[2]=='R') || (buffer[0] == 'v' && buffer[1]=='e' && buffer[2]=='r'))
 	{
 		return Version();
 	}
@@ -230,14 +229,20 @@ int validar_comando(uint8_t *buffer)
 	{
 		 return Help();
 	}
-	return 0;
- }
 
+	return Invalid();
+ }
+int Invalid()
+{
+	Write_Tx_Buffer("Comando Invalido",0);
+	transmite_flag=1;
+	Print();
+	return 0;
+}
 int Memory_read(uint8_t *buffer1)
 {
 	char addr[2];
 	char lenght[2];
-	char ptr_teste1;
 	int counter=0;
 	int aux_counter=0;
 	int counter_space=0;
@@ -263,10 +268,9 @@ int Memory_read(uint8_t *buffer1)
 
 	long hex_addr = strtol(addr, NULL, 16);
 	long value = strtol(lenght, NULL, 16);
-	char aux;
 	while(value>0)
 	{
-		itoa(memory_buffer[hex_addr], ptr_teste1, 16);
+		itoa(memory_buffer[hex_addr],NULL, 16);
 		Write_Tx_Buffer(memory_buffer[hex_addr], 0);
 		hex_addr++;
 		value--;
@@ -275,11 +279,11 @@ int Memory_read(uint8_t *buffer1)
 }
 
 int Memory_write(uint8_t *buffer1){
-	char addr[4], lenght[2], byte[2], *message, Mensagem[] = "Memory Write";
+	char addr[4], lenght[2], byte[2],*Message = "Memory Write";
 
 	int counter = 0, aux_counter = 0, counter_space = 0;
 	long addr_ = 0, lenght_ = 0;
-	uint16_t byte_ = 0;
+	uint8_t byte_;
 
 	while(buffer1[counter]!='\0'){
 		if(buffer1[counter]==b){
@@ -299,8 +303,8 @@ int Memory_write(uint8_t *buffer1){
 	aux_counter = 0;
 	counter_space = 0;
 
-	addr_ = strtol(addr, &message,16);
-	lenght_ = strtol(lenght, &message, 16);
+	addr_ = strtol(addr, NULL,16);
+	lenght_ = strtol(lenght, NULL, 16);
 	strcpy(byte_,byte);
 
 	while(lenght_> 0){
@@ -310,14 +314,13 @@ int Memory_write(uint8_t *buffer1){
 		++counter;
 	}
 
-	Write_Tx_Buffer(Mensagem, 0);
-
+	Write_Tx_Buffer(Message, 0);
 	return 1;
 }
 
 int Make_Pin_Input(uint8_t *buffer1){
 	char addr[4] = {"0"}, *Message = "Make_Pin_Input";
-	char lenght1[4] = {"0"}, lenght2[4] = {"0"}, lenght3[4] = {"0"};
+	char pin_settings1[4] = {"0"}, pin_settings2[4] = {"0"}, pin_settings3[4] = {"0"};
 	char *binary;
 	int counter=0, aux_counter=0, counter_space=0;
 	long hex_addr = 0, value1 = 0, value2 = 0, value = 0;
@@ -333,24 +336,23 @@ int Make_Pin_Input(uint8_t *buffer1){
 			addr[aux_counter++]=buffer1[counter];
 
 		else if(counter_space==2)
-			lenght1[aux_counter++]=buffer1[counter];
+			pin_settings1[aux_counter++]=buffer1[counter];
 		++counter;
 	}
 
 	counter = 0;
-	counter_space = 0;
 
 	hex_addr = strtol(addr, &binary, 10);
-	if((aux_counter = strlen(lenght1)) <=2)
-		value = strtol(lenght1, &binary, 16);
+	if((aux_counter = strlen(pin_settings1)) <=2)
+		value = strtol(pin_settings1, &binary, 16);
 	else{
-		lenght2[0] = lenght1[0];
-		lenght2[1] = lenght1[1];
-		lenght3[0] = lenght1[2];
-		lenght3[1] = lenght1[3];
+		pin_settings2[0] = pin_settings1[0];
+		pin_settings2[1] = pin_settings1[1];
+		pin_settings3[0] = pin_settings1[2];
+		pin_settings3[1] = pin_settings1[3];
 
-		value1 = strtol(lenght2, &binary, 16);
-		value2 = strtol(lenght3, &binary, 16);
+		value1 = strtol(pin_settings2, &binary, 16);
+		value2 = strtol(pin_settings3, &binary, 16);
 		value = value1 << 8;
 		value |= value2;
 	}
@@ -378,7 +380,7 @@ int Make_Pin_Input(uint8_t *buffer1){
 
 int Make_Pin_Output(uint8_t *buffer1){
 	char addr[4] = {"0"}, *Message = "Make_Pin_Output";
-	char lenght1[4] = {"0"}, lenght2[4] = {"0"}, lenght3[4] = {"0"};
+	char pin_settings1[4] = {"0"}, pin_settings2[4] = {"0"}, pin_settings3[4] = {"0"};
 	char *binary;
 	int counter=0, aux_counter=0, counter_space=0;
 	unsigned long int hex_addr = 0, value1 = 0, value2 = 0, value = 0;
@@ -394,24 +396,23 @@ int Make_Pin_Output(uint8_t *buffer1){
 			addr[aux_counter++]=buffer1[counter];
 
 		else if(counter_space==2)
-			lenght1[aux_counter++]=buffer1[counter];
+			pin_settings1[aux_counter++]=buffer1[counter];
 		++counter;
 	}
 
 	counter = 0;
-	counter_space = 0;
 
 	hex_addr = strtol(addr, &binary, 10);
-	if((aux_counter = strlen(lenght1)) <=2)
-		value = strtol(lenght1, &binary, 16);
+	if((aux_counter = strlen(pin_settings1)) <=2)
+		value = strtol(pin_settings1, &binary, 16);
 	else{
-		lenght2[0] = lenght1[0];
-		lenght2[1] = lenght1[1];
-		lenght3[0] = lenght1[2];
-		lenght3[1] = lenght1[3];
+		pin_settings2[0] = pin_settings1[0];
+		pin_settings2[1] = pin_settings1[1];
+		pin_settings3[0] = pin_settings1[2];
+		pin_settings3[1] = pin_settings1[3];
 
-		value1 = strtol(lenght2, &binary, 16);
-		value2 = strtol(lenght3, &binary, 16);
+		value1 = strtol(pin_settings2, &binary, 16);
+		value2 = strtol(pin_settings3, &binary, 16);
 		value = value1 << 8;
 		value |= value2;
 	}
@@ -439,7 +440,7 @@ int Make_Pin_Output(uint8_t *buffer1){
 
 int Read_Dig_Input(uint8_t *buffer1){
 	char addr[4] = {"0"}, *Message;
-	char lenght1[4] = {"0"}, lenght2[4] = {"0"}, lenght3[4] = {"0"};
+	char pin_settings1[4] = {"0"}, pin_settings2[4] = {"0"}, pin_settings3[4] = {"0"};
 	char *binary;
 	int counter=0, aux_counter=0, counter_space=0;
 	long hex_addr = 0, value1 = 0, value2 = 0, value = 0;
@@ -455,24 +456,23 @@ int Read_Dig_Input(uint8_t *buffer1){
 			addr[aux_counter++]=buffer1[counter];
 
 		else if(counter_space==2)
-			lenght1[aux_counter++]=buffer1[counter];
+			pin_settings1[aux_counter++]=buffer1[counter];
 		++counter;
 	}
 
 	counter = 0;
-	counter_space = 0;
 
 	hex_addr = strtol(addr, &binary, 16);
-	if((aux_counter = strlen(lenght1)) <=2)
-		value = strtol(lenght1, &binary, 16);
+	if((aux_counter = strlen(pin_settings1)) <=2)
+		value = strtol(pin_settings1, &binary, 16);
 	else{
-		lenght2[0] = lenght1[0];
-		lenght2[1] = lenght1[1];
-		lenght3[0] = lenght1[2];
-		lenght3[1] = lenght1[3];
+		pin_settings2[0] = pin_settings1[0];
+		pin_settings2[1] = pin_settings1[1];
+		pin_settings3[0] = pin_settings1[2];
+		pin_settings3[1] = pin_settings1[3];
 
-		value1 = strtol(lenght2, &binary, 16);
-		value2 = strtol(lenght3, &binary, 16);
+		value1 = strtol(pin_settings2, &binary, 16);
+		value2 = strtol(pin_settings3, &binary, 16);
 		value = value1 << 8;
 		value |= value2;
 	}
@@ -481,7 +481,7 @@ int Read_Dig_Input(uint8_t *buffer1){
 	aux_counter = strlen(binary)-1;
 
 	while(aux_counter >= 0){
-		itoa(HAL_GPIO_ReadPin(Ports[hex_addr], Pins[aux_counter]), Message, 10);
+		itoa(HAL_GPIO_ReadPin(Ports[hex_addr], Pins[aux_counter]),Message, 10);
 		Write_Tx_Buffer(Message, 1);
 		aux_counter--;
 		counter++;
@@ -491,15 +491,14 @@ int Read_Dig_Input(uint8_t *buffer1){
 }
 
 int Write_Dig_Output(uint8_t *buffer1){
-	char addr[4] = {"0"}, lenght[4] = {"0"}, bits[4] = {"0"};
-	char lenght1[2] = {"0"},lenght2[2] = {"0"}, bits1[2] = {"0"}, bits2[2] = {"0"};
-	char *t;
+	char addr[4] = {"0"}, pin_settings[4] = {"0"}, pin_values[4] = {"0"};
+	char pin_settings1[2] = {"0"},pin_settings2[2] = {"0"}, pin_values1[2] = {"0"}, pin_values2[2] = {"0"};
 	char *Message = "Write Digital Output";
 	int counter=0, aux_counter=0, counter_space=0;
-	int aux_counter1 = 0;
+	int aux_counter1 = 0,shift_pin_settings;
 	long hex_addr = 0, value = 0, bits_ = 0;
 	long value1 = 0, value2 = 0, bits_1 = 0, bits_2 = 0;
-
+	unsigned long int shift_pin_values;
 	while(buffer1[counter]!='\0')
 	{
 		if(buffer1[counter]==b)
@@ -511,55 +510,52 @@ int Write_Dig_Output(uint8_t *buffer1){
 			addr[aux_counter++]=buffer1[counter];
 
 		else if(counter_space==2)
-			lenght[aux_counter++]=buffer1[counter];
+			pin_settings[aux_counter++]=buffer1[counter];
 		else if(counter_space == 3)
-			bits[aux_counter++]=buffer1[counter];
+			pin_values[aux_counter++]=buffer1[counter];
 		++counter;
 	}
 
 	counter = 0;
 	counter_space = 0;
 
-	hex_addr = strtol(addr, &t, 16);
+	hex_addr = strtol(addr,NULL, 16);
 
-	if((aux_counter = strlen(lenght)) <=2)
-		value = strtol(lenght, &t, 16);
+	if((aux_counter = strlen(pin_settings)) <=2)
+		value = strtol(pin_settings,NULL, 16);
 	else{
-		lenght1[0] = lenght[0];
-		lenght1[1] = lenght[1];
-		lenght2[0] = lenght[2];
-		lenght2[1] = lenght[3];
+		pin_settings1[0] = pin_settings[0];
+		pin_settings1[1] = pin_settings[1];
+		pin_settings2[0] = pin_settings[2];
+		pin_settings2[1] = pin_settings[3];
 
-		value1 = strtol(lenght1, &t, 16);
-		value2 = strtol(lenght2, &t, 16);
+		value1 = strtol(pin_settings1,NULL, 16);
+		value2 = strtol(pin_settings2,NULL, 16);
 		value = value1 << 8;
 		value |= value2;
 	}
 
-	if((aux_counter1 = strlen(bits)) <=2)
-		bits_ = strtol(bits, &t, 16);
+	if((aux_counter1 = strlen(pin_values)) <=2)
+		bits_ = strtol(pin_values,NULL, 16);
 	else{
-		bits1[0] = bits[0];
-		bits1[1] = bits[1];
-		bits2[0] = bits[2];
-		bits2[1] = bits[3];
+		pin_values1[0] = pin_values[0];
+		pin_values1[1] = pin_values[1];
+		pin_values2[0] = pin_values[2];
+		pin_values2[1] = pin_values[3];
 
-		bits_1 = strtol(bits1, &t, 16);
-		bits_2 = strtol(bits2, &t, 16);
+		bits_1 = strtol(pin_values1,NULL, 16);
+		bits_2 = strtol(pin_values2,NULL, 16);
 		bits_ = bits_1 << 8;
 		bits_|= bits_2;
 	}
 
-unsigned long int shift1 ;
-
 	aux_counter = 15;
-	int shift;
 
 	while(aux_counter >= 0){
-		shift =value >> aux_counter;
-		if(shift & 1){
-			shift1=bits_>>aux_counter;
-			if( shift1 & 1)
+		shift_pin_settings =value >> aux_counter;
+		if(shift_pin_settings & 1){
+			shift_pin_values=bits_>>aux_counter;
+			if( shift_pin_values & 1)
 					HAL_GPIO_WritePin(Ports[hex_addr], Pins[aux_counter],  GPIO_PIN_SET);
 			else
 				HAL_GPIO_WritePin(Ports[hex_addr], Pins[aux_counter], GPIO_PIN_RESET );
@@ -643,9 +639,6 @@ int Analog_Read(uint8_t *buffer1)
 				addr[aux_counter++]=buffer1[counter];
 			counter++;
 		}
-
-		counter = 0;
-		counter_space = 0;
 
 		hex_addr = strtol(addr, NULL, 16);
 
