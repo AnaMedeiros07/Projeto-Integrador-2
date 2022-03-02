@@ -24,6 +24,10 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "stdbool.h"
+#include "string.h"
+#define esc 0x1B
+#define bckspc 0x08
+#define $ 0x24
 	uint8_t UART3Rx_Buffer[256]; //guarda as mensagens para a main;
 	uint8_t Rx_Buffer[256];
     uint8_t	Rx_Buffer_Old[256];
@@ -34,9 +38,7 @@
 	uint8_t index_ = 0;
 	volatile uint8_t UART3Rx_index=0;// index do ultimo caracter
 	int transmite_flag =0;
-	uint8_t esc =0x1B;
-	uint8_t bckspc =0x08;
-	uint8_t $ =0x24;
+
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart3;
@@ -183,8 +185,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
                 receive_flag = 1;
                 UART3Rx_index = 0;
                 HAL_UART_Receive_IT(&huart3, &UART3Rx_Buffer[UART3Rx_index], 1);
-                Limpar_Rx_Buffer_Old();
-                strcpy(Rx_Buffer_Old,Rx_Buffer);
             }
         }
     }
@@ -206,8 +206,6 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 	}
 }
 
-
-
 void Write_Tx_Buffer(char *pdata, int flag){
 	int local_index = 0;
 	while(pdata[local_index] != '\0'){
@@ -215,7 +213,6 @@ void Write_Tx_Buffer(char *pdata, int flag){
 		local_index++;
 		tamanho++;
 	}
-
 	if(flag == 0)
 		Tx_Buffer[tamanho++] = '\r';
 	else
@@ -254,6 +251,10 @@ void Limpar_Rx_Buffer_Old()
 			}
 }
 
+void Data_Reset(){
+    Limpar_Rx_Buffer_Old();
+    strcpy(Rx_Buffer_Old,Rx_Buffer);
+}
 #ifdef __GNUC__
 
 int __io_putchar(int ch)
