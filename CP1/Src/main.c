@@ -59,6 +59,7 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void init_UART3();
+void Init_ADC();
 int Check_Comand(uint8_t *buffer);
 int Invalid();
 int Memory_read(uint8_t *buffer1);
@@ -81,6 +82,7 @@ uint32_t AdcChannels[]={ADC_CHANNEL_0,ADC_CHANNEL_1,ADC_CHANNEL_2,ADC_CHANNEL_3,
 uint16_t gpio_adc_pins[]={GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4,GPIO_PIN_5,GPIO_PIN_6,GPIO_PIN_7,GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4,GPIO_PIN_5};
 GPIO_TypeDef* gpio_adc_ports[]={GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOB,GPIOB,GPIOC,GPIOC,GPIOC,GPIOC,GPIOC,GPIOC};
 int adc_validation = 0;
+int valid=1;
 uint8_t b =0x20;
 uint8_t memory_buffer[1024];
 
@@ -118,6 +120,7 @@ int main(void)
   //MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   init_UART3();
+  Init_ADC();
   receive_flag=0;
   int prompt_flag = 1;
 
@@ -145,8 +148,11 @@ int main(void)
 		  receive_flag=0;
 		  transmite_flag = Check_Comand(Rx_Buffer);
 		  Print();
+		  if(valid==1)
+			  Data_Reset();
+		  else
+			  valid=1;
 		  Limpar_Rx_Buffer();
-
 	  }
   }
     /* USER CODE END WHILE */
@@ -196,7 +202,27 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void Init_ADC()
+{
+	 GPIO_InitTypeDef gpioInit = {0};
 
+		  hadc1.Instance = ADC1;
+		  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
+		  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+		  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+		  hadc1.Init.ContinuousConvMode = DISABLE;
+		  hadc1.Init.DiscontinuousConvMode = DISABLE;
+		  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+		  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+		  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+		  hadc1.Init.NbrOfConversion = 1;
+		  hadc1.Init.DMAContinuousRequests = DISABLE;
+		  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+		  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+		  {
+		    return 0;
+		  }
+}
 int Check_Comand(uint8_t *buffer)
  {
 	if((buffer[0] == 'M' && buffer[1] == 'R') || (buffer[0] == 'm' && buffer[1] == 'r')){
@@ -229,6 +255,11 @@ int Check_Comand(uint8_t *buffer)
 	{
 		 return Help();
 	}
+	else if(buffer[0] == '\0')
+	{
+		Write_Tx_Buffer("Insira um comando",0);
+		return 1;
+	}
 
 	return Invalid();
  }
@@ -236,6 +267,7 @@ int Invalid()
 {
 	Write_Tx_Buffer("Comando Invalido",0);
 	transmite_flag=1;
+	valid=0;
 	Print();
 	return 0;
 }
@@ -568,7 +600,7 @@ int Write_Dig_Output(uint8_t *buffer1){
 }
 
 int Version(){
-	Write_Tx_Buffer("v1.6 grupo 2 PIEEIC-II DEIC UM2022",0);
+	Write_Tx_Buffer("v3.1 grupo 2 PIEEIC-II DEIC UM2022",0);
 	return 1;
 }
 
@@ -674,22 +706,10 @@ int config_ADC(int pin)
 {
 	 GPIO_InitTypeDef gpioInit = {0};
 
-	  hadc1.Instance = ADC1;
-	  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
-	  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-	  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-	  hadc1.Init.ContinuousConvMode = DISABLE;
-	  hadc1.Init.DiscontinuousConvMode = DISABLE;
-	  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-	  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-	  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-	  hadc1.Init.NbrOfConversion = 1;
-	  hadc1.Init.DMAContinuousRequests = DISABLE;
-	  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-	  if (HAL_ADC_Init(&hadc1) != HAL_OK)
-	  {
-	    return 0;
-	  }
+	 gpioInit.Pin =gpio_adc_pins[pin];
+	 gpioInit.Mode = GPIO_MODE_ANALOG;
+	 gpioInit.Pull = GPIO_NOPULL;
+	 HAL_GPIO_Init(gpio_adc_ports[pin], &gpioInit);
 
 	 adcChannel.Channel = AdcChannels[pin];
 	 adcChannel.Rank =  ADC_REGULAR_RANK_1;
@@ -727,11 +747,6 @@ int config_ADC(int pin)
 	 		 return 0;
 
 	 }
-	 gpioInit.Pin =gpio_adc_pins[pin];
-	 gpioInit.Mode = GPIO_MODE_ANALOG;
-	 gpioInit.Pull = GPIO_NOPULL;
-	 HAL_GPIO_Init(gpio_adc_ports[pin], &gpioInit);
-
 	 HAL_NVIC_SetPriority(ADC_IRQn, 0, 0);
 	 HAL_NVIC_EnableIRQ(ADC_IRQn);
 
