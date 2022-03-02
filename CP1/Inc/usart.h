@@ -50,6 +50,7 @@ void Limpar_Tx_Buffer();
 void Tx_Transmition();
 void Limpar_Rx_Buffer_Old();
 void Limpar_Rx_Buffer();
+void Data_Reset();
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
