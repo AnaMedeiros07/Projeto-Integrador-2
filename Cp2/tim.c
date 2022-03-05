@@ -95,21 +95,6 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 /* USER CODE BEGIN 1 */
 void Timer_Configuration(int period)
 {
-	TIM_MasterConfigTypeDef sMasterConfig = {0};
-	  htim6.Instance = TIM6;
-	  htim6.Init.Prescaler = period;
-	  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-	  htim6.Init.Period = 65535;
-	  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-	  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
-	  {
-	    Error_Handler();
-	  }
-	  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
-	  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
-	  {
-	    Error_Handler();
-	  }
+	htim6.Instance->PSC = period;
 }
 /* USER CODE END 1 */
