@@ -40,15 +40,15 @@ void MX_TIM6_Init(void)
 
   /* USER CODE END TIM6_Init 1 */
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 2440;
+ // htim6.Init.Prescaler = 822;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim6.Init.Period = 65535;
-  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
     Error_Handler();
   }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
   {
@@ -69,10 +69,7 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* tim_baseHandle)
 
   /* USER CODE END TIM6_MspInit 0 */
     /* TIM6 clock enable */
-
-
-    /* TIM6 interrupt Init */
-
+    __HAL_RCC_TIM6_CLK_ENABLE();
   /* USER CODE BEGIN TIM6_MspInit 1 */
 
   /* USER CODE END TIM6_MspInit 1 */
@@ -88,8 +85,7 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 
   /* USER CODE END TIM6_MspDeInit 0 */
     /* Peripheral clock disable */
-
-    /* TIM6 interrupt Deinit */
+    __HAL_RCC_TIM6_CLK_DISABLE();
   /* USER CODE BEGIN TIM6_MspDeInit 1 */
 
   /* USER CODE END TIM6_MspDeInit 1 */
@@ -97,8 +93,23 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 }
 
 /* USER CODE BEGIN 1 */
-void Period_Change(int period)
+void Timer_Configuration(int period)
 {
-	htim6.Init.Period = period-1;
+	TIM_MasterConfigTypeDef sMasterConfig = {0};
+	  htim6.Instance = TIM6;
+	  htim6.Init.Prescaler = period;
+	  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
+	  htim6.Init.Period = 65535;
+	  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+	  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
+	  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+	  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+	  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
 }
 /* USER CODE END 1 */
