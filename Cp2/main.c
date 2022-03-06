@@ -21,6 +21,7 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
+#include "output.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -257,6 +258,16 @@ int Check_Comand(uint8_t *buffer)
 	{
 		return Start(buffer);
 	}
+	else if((buffer[0] == 'F' && buffer[1] == 'F' ) || (buffer[0] == 'f' && buffer[1] == 'f'))
+	{
+		filter_on=0;
+		return 1;
+	}
+	else if((buffer[0] == 'F' && buffer[1] == 'O' ) || (buffer[0] == 'f' && buffer[1] == 'o'))
+	{
+		filter_on=1;
+		return 1;
+	}
 	else if(buffer[0] == '\0')
 	{
 		Write_Tx_Buffer("Insira um comando",0);
@@ -386,7 +397,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
 		K_value--;
 		adc_value = HAL_ADC_GetValue(hadc1);
 		temp=((((double)adc_value*3300/4095)-760.0)/2.5)+25;
-		array_adc_memory[index_adc_memory++] = temp;
 		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
 	}
 	else if((Sample_K == 1) && (K_value == 0))
@@ -394,9 +404,9 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
 	else {
 		adc_value = HAL_ADC_GetValue(hadc1);
 		temp=((((double)adc_value*3300/4095)-760.0)/2.5)+25;
-		array_adc_memory[index_adc_memory++] = temp;
 		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
 	}
+	Print_Trama(temp);
  }
 
 int Sampling_Period(uint8_t *buffer1)
@@ -479,27 +489,31 @@ int Start(uint8_t *buffer1)
 
 int Stop(){
 
-	int index = 0;
-	char result[5];
-
+	 Reset();
 	 HAL_TIM_Base_Stop_IT(&htim6);
 
-	 while(index < index_adc_memory){
-		 snprintf(result, 5, "%f", array_adc_memory[index]);
-		 Write_Tx_Buffer(result, 0);
-		 transmite_flag = 1;
-		 Print();
-		 index++;
-	 }
-
-	 index =  0;
-	 while(index < index_adc_memory){
-		array_adc_memory[index++] = 0;
-	 }
-	 index_adc_memory = 0;
-
 	 prompt_flag = 1;
+}
+void Print_Trama(double temp)
+{
+	int index=Save_N_Buffer()-1;
+	char result[5];
 
+	Save_X_Buffer(temp);
+	Save_X_ant();
+	Save_Y_ant();
+	Save_Y();
+
+	Write_Tx_Buffer("n", 2);
+	Write_Tx_Buffer(itoa(index,NULL,10),1);
+	Write_Tx_Buffer("va",2);
+	snprintf(result, 5, "%f", X_Buffer[index]);
+	Write_Tx_Buffer(result,1);
+	Write_Tx_Buffer("vf",2);
+	snprintf(result, 5, "%f", Y_Buffer[index]);
+	Write_Tx_Buffer(result,0);
+	transmite_flag=1;
+	Print();
 }
 
 /* USER CODE END 4 */
