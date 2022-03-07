@@ -18,10 +18,11 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+//#include "adc.h"
+#include "dac.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
-#include "output.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -29,6 +30,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "math.h"
+#include "output.h"
 #include "stdbool.h"
 /* USER CODE END Includes */
 
@@ -122,8 +124,10 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  //MX_ADC1_Init();
   MX_USART3_UART_Init();
   MX_TIM6_Init();
+  MX_DAC_Init();
   /* USER CODE BEGIN 2 */
   init_UART3();
   Init_ADC();
@@ -224,7 +228,7 @@ void SystemClock_Config(void)
 void Init_ADC()
 {
 	  hadc1.Instance = ADC1;
-	  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
+	  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
 	  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
 	  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
 	  hadc1.Init.ContinuousConvMode = DISABLE;
@@ -396,16 +400,31 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
 	if((Sample_K == 1) && (K_value != 0)){
 		K_value--;
 		adc_value = HAL_ADC_GetValue(hadc1);
-		temp=((((double)adc_value*3300/4095)-760.0)/2.5)+25;
+		if( adcChannel.Channel == ADC_CHANNEL_TEMPSENSOR)
+		{
+			temp=((((double)adc_value*3300/4095)-760.0)/2.5)+25;
+		}
+		else
+		{
+			 temp=((double)adc_value*3.3/4095);
+		}
 		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
 	}
 	else if((Sample_K == 1) && (K_value == 0))
 		Stop();
 	else {
 		adc_value = HAL_ADC_GetValue(hadc1);
-		temp=((((double)adc_value*3300/4095)-760.0)/2.5)+25;
+		if( adcChannel.Channel == ADC_CHANNEL_TEMPSENSOR)
+		{
+			temp=((((double)adc_value*3300/4095)-760.0)/2.5)+25;
+		}
+		else
+		{
+			 temp=((double)adc_value*3.3/4095);
+		}
 		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
 	}
+
 	Print_Trama(temp);
  }
 
@@ -496,21 +515,26 @@ int Stop(){
 }
 void Print_Trama(double temp)
 {
-	int index=Save_N_Buffer()-1;
+	int index_count=(Save_N_Buffer()-1);
 	char result[5];
-
 	Save_X_Buffer(temp);
 	Save_X_ant();
 	Save_Y_ant();
-	Save_Y();
+
+	 if(HAL_DAC_GetState(&hdac)!= HAL_DAC_STATE_READY)
+			  HAL_DAC_Stop(&hdac, DAC1_CHANNEL_1);
+		  if(HAL_DAC_Start(&hdac, DAC1_CHANNEL_1)== HAL_OK)
+		  {
+			 HAL_DAC_SetValue(&hdac, DAC1_CHANNEL_1,DAC_ALIGN_12B_R,((Save_Y()*4095)/3.3));
+		  }
 
 	Write_Tx_Buffer("n", 2);
-	Write_Tx_Buffer(itoa(index,NULL,10),1);
+	Write_Tx_Buffer(itoa(index_count,NULL,10),1);
 	Write_Tx_Buffer("va",2);
-	snprintf(result, 5, "%f", X_Buffer[index]);
+	snprintf(result, 5, "%f", X_Buffer[index_count]);
 	Write_Tx_Buffer(result,1);
 	Write_Tx_Buffer("vf",2);
-	snprintf(result, 5, "%f", Y_Buffer[index]);
+	snprintf(result, 5, "%f", Y_Buffer[index_count]);
 	Write_Tx_Buffer(result,0);
 	transmite_flag=1;
 	Print();

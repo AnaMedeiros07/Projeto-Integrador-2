@@ -23,7 +23,7 @@ void Save_X_Buffer(double value);
 int Save_N_Buffer();
 void Save_X_ant();
 void Save_Y_ant();
-void Save_Y();
+double Save_Y();
 double Filtro_IIR();
 void Reset();
 #endif /* INC_OUTPUT_H_ */
