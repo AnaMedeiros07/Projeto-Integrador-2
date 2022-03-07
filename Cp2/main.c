@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-//#include "adc.h"
 #include "dac.h"
 #include "tim.h"
 #include "usart.h"
@@ -69,12 +68,15 @@ int Invalid();
 
 int Sampling_Period(uint8_t *buffer1);
 int Analog_Channel(uint8_t *buffer1);
+void Arrays_Maker(double temp);
+void ADC_Desconfig(int pin);
+int config_ADC(int pin);
 
 int Start(uint8_t *buffer1);
 int Stop();
 void Print();
 
-
+double adc_value;
 ADC_HandleTypeDef hadc1;
 ADC_ChannelConfTypeDef adcChannel = {0};
 GPIO_TypeDef*  Ports[]={GPIOA,GPIOB,GPIOC,GPIOD,GPIOE,GPIOF,GPIOG,GPIOI,GPIOJ,GPIOK};
@@ -85,9 +87,8 @@ GPIO_TypeDef* gpio_adc_ports[]={GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,
 int adc_validation = 0;
 int valid=1;
 uint8_t b =0x20;
-
-double array_adc_memory[500];
-int index_adc_memory = 0;
+_Bool output = 0;
+int index_count = 0;
 
 _Bool Sample_K = 0;
 int K_value = 0;
@@ -124,7 +125,6 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  //MX_ADC1_Init();
   MX_USART3_UART_Init();
   MX_TIM6_Init();
   MX_DAC_Init();
@@ -163,6 +163,21 @@ int main(void)
 		  else
 			  valid=1;
 		  Limpar_Rx_Buffer();
+	  }
+
+	  if(output == 1){
+		  char result[5];
+		Write_Tx_Buffer("n", 2);
+		Write_Tx_Buffer(itoa(index_count,NULL,10),1);
+		Write_Tx_Buffer("va",2);
+		snprintf(result, 5, "%f", X_Buffer[index_count]);
+		Write_Tx_Buffer(result,1);
+		Write_Tx_Buffer("vf",2);
+		snprintf(result, 5, "%f", Y_Buffer[index_count]);
+		Write_Tx_Buffer(result,0);
+		transmite_flag=1;
+		Print();
+		output = 0;
 	  }
   }
     /* USER CODE END WHILE */
@@ -371,7 +386,7 @@ int config_ADC(int pin)
 	 		 return 0;
 
 	 }
-	 HAL_NVIC_SetPriority(ADC_IRQn, 1, 0);
+	 HAL_NVIC_SetPriority(ADC_IRQn, 0, 0);
 	 HAL_NVIC_EnableIRQ(ADC_IRQn);
 
 	 if (HAL_ADC_ConfigChannel(&hadc1, &adcChannel) != HAL_OK){
@@ -395,20 +410,18 @@ void ADC_Desconfig(int pin){
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
 {
 	uint32_t adc_value = 0;
-	double temp;
 
 	if((Sample_K == 1) && (K_value != 0)){
 		K_value--;
 		adc_value = HAL_ADC_GetValue(hadc1);
 		if( adcChannel.Channel == ADC_CHANNEL_TEMPSENSOR)
 		{
-			temp=((((double)adc_value*3300/4095)-760.0)/2.5)+25;
+			adc_value=((((double)adc_value*3300/4095)-760.0)/2.5)+25;
 		}
 		else
 		{
-			 temp=((double)adc_value*3.3/4095);
+			 adc_value=((double)adc_value*3.3/4095);
 		}
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
 	}
 	else if((Sample_K == 1) && (K_value == 0))
 		Stop();
@@ -416,24 +429,23 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
 		adc_value = HAL_ADC_GetValue(hadc1);
 		if( adcChannel.Channel == ADC_CHANNEL_TEMPSENSOR)
 		{
-			temp=((((double)adc_value*3300/4095)-760.0)/2.5)+25;
+			adc_value=((((double)adc_value*3300/4095)-760.0)/2.5)+25;
 		}
 		else
 		{
-			 temp=((double)adc_value*3.3/4095);
+			 adc_value=((double)adc_value*3.3/4095);
 		}
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
 	}
-
-	Print_Trama(temp);
+	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
+	Arrays_Maker(adc_value);
  }
 
 int Sampling_Period(uint8_t *buffer1)
 {
 	char time_unit[4] = {"\0"}, units[4]={"\0"};
 	int counter=0, aux_counter=0, counter_space=0,prescaler=0;
-	float period=0,freq=0;
-	long int hex_addr = 0, time_6_clock;
+	float period=0;
+	long int time_6_clock = 0;
    //--------------------------------------------
 	while(buffer1[counter]!='\0')
 	{
@@ -466,7 +478,7 @@ int Sampling_Period(uint8_t *buffer1)
 	}
 
 	time_6_clock = (65536/period);
-	prescaler = ((216000000/time_6_clock)-1);
+	prescaler = ((216000000/time_6_clock));
 	Timer_Configuration(prescaler);
 	return 1;
 }
@@ -489,17 +501,14 @@ int Start(uint8_t *buffer1)
 	}
 
 	if(counter_space == 0)
-	{
 		Sample_K = 0;
-		HAL_TIM_Base_Start_IT(&htim6);
-	}
 	else
 	{
 		K_value = atoi(Kvalues);
 		Sample_K = 1;
-		HAL_TIM_Base_Start_IT(&htim6);
 	}
 
+	HAL_TIM_Base_Start_IT(&htim6);
 	prompt_flag = 0;
 
 	return 0;
@@ -507,37 +516,28 @@ int Start(uint8_t *buffer1)
 }
 
 int Stop(){
-
 	 Reset();
 	 HAL_TIM_Base_Stop_IT(&htim6);
 
 	 prompt_flag = 1;
 }
-void Print_Trama(double temp)
+
+void Arrays_Maker(double temp)
 {
-	int index_count=(Save_N_Buffer()-1);
-	char result[5];
+	index_count=(Save_N_Buffer()-1);
+
 	Save_X_Buffer(temp);
 	Save_X_ant();
 	Save_Y_ant();
 
-	 if(HAL_DAC_GetState(&hdac)!= HAL_DAC_STATE_READY)
-			  HAL_DAC_Stop(&hdac, DAC1_CHANNEL_1);
-		  if(HAL_DAC_Start(&hdac, DAC1_CHANNEL_1)== HAL_OK)
-		  {
-			 HAL_DAC_SetValue(&hdac, DAC1_CHANNEL_1,DAC_ALIGN_12B_R,((Save_Y()*4095)/3.3));
-		  }
+	output = 1;
 
-	Write_Tx_Buffer("n", 2);
-	Write_Tx_Buffer(itoa(index_count,NULL,10),1);
-	Write_Tx_Buffer("va",2);
-	snprintf(result, 5, "%f", X_Buffer[index_count]);
-	Write_Tx_Buffer(result,1);
-	Write_Tx_Buffer("vf",2);
-	snprintf(result, 5, "%f", Y_Buffer[index_count]);
-	Write_Tx_Buffer(result,0);
-	transmite_flag=1;
-	Print();
+	/* if(HAL_DAC_GetState(&hdac)!= HAL_DAC_STATE_READY)
+			  HAL_DAC_Stop(&hdac, DAC1_CHANNEL_1);
+	  if(HAL_DAC_Start(&hdac, DAC1_CHANNEL_1)== HAL_OK)
+	  {
+		 HAL_DAC_SetValue(&hdac, DAC1_CHANNEL_1,DAC_ALIGN_12B_R,((Save_Y()*4095)/3.3));
+	  }*/
 }
 
 /* USER CODE END 4 */
