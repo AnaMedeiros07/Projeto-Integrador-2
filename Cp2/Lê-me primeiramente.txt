@@ -1,5 +1,0 @@
--> Para fazer o print no stop tive que colocar a prioridade da interrupção do adc menor que a interrupção da uart.
--> Fiz alguma mudanças no callback do adc.
--> Os ficheiros que mudei mesmo são os do timer, main e acho que são apenas esses.
-
-Bye-Bye :D
