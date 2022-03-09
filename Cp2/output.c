@@ -33,20 +33,22 @@ void Save_X_Buffer(double value)
 }
 void Save_X_ant()
 {
-	for(int index =count_x; index > 1;index--)
+	int i=0;
+	for(i =count_x; i >= 1;i--)
 	{
-		X_ant_Buffer[index]=X_ant_Buffer[index-1];
+		X_ant_Buffer[i]=X_ant_Buffer[i-1];
 	}
 	X_ant_Buffer[0]=X_Buffer[count_x-1];
 
 }
 void Save_Y_ant()
 {
-	for(int index =count_y; index > 1;index--)
+	int index=0;
+	for(index =count_y; index >= 1;index--)
 	{
 		Y_ant_Buffer[index]=Y_ant_Buffer[index-1];
 	}
-	Y_ant_Buffer[0]=Y_Buffer[count_x-1];
+	Y_ant_Buffer[0]=Y_Buffer[count_y-1];
 }
 double Save_Y()
 {
@@ -67,17 +69,28 @@ double Filtro_IIR()
 	{
 		y=y+(1-a)*X_ant_Buffer[index];
 	}
-	for(int index =1; index < count_y;index++)
+	for(int index =0; index < count_y;index++)
 	{
 		y=y+a*Y_ant_Buffer[index];
 	}
 	return y;
 }
+
 void Reset()
 {
-	count_n &=0;
-	count_x &=0;
-	count_y &=0;
+
+	int index=0;
+	for(index =0; index <= count_y;index++)
+	{
+		Y_ant_Buffer[index]=0;
+	}
+	for(index =0; index <= count_x;index++)
+	{
+			X_ant_Buffer[index]=0;
+	}
+	count_n = 0;
+	count_x = 0;
+	count_y = 0;
 }
 
 
