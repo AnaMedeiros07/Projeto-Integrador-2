@@ -17,6 +17,7 @@ _Bool filter_on=0;
 static int count_n=0;
 static int count_x=0;
 static int count_y=0;
+
 int Save_N_Buffer()
 {
 	static int local_index_n=0;
@@ -62,19 +63,29 @@ double Save_Y()
 	return Y_Buffer[count_y];
 
 }
+
 double Filtro_IIR()
+{
+	double y=0;
+
+	y=(a*Y_ant_Buffer[0])+((1-a)*X_ant_Buffer[0]);
+
+	return y;
+}
+
+/*double Filtro_FIR()
 {
 	double y=0;
 	for(int index =0; index < count_x;index++)
 	{
-		y=y+(1-a)*X_ant_Buffer[index];
+		y=y+Mudar(1-a)*X_ant_Buffer[index];
 	}
 	for(int index =0; index < count_y;index++)
 	{
-		y=y+a*Y_ant_Buffer[index];
+		y=y+Mudara*Y_ant_Buffer[index];
 	}
 	return y;
-}
+}*/
 
 void Reset()
 {
