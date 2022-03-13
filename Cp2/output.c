@@ -39,17 +39,23 @@ void Save_X_ant()
 	{
 		X_ant_Buffer[i]=X_ant_Buffer[i-1];
 	}
-	X_ant_Buffer[0]=X_Buffer[count_x-1];
+	if(count_x == 0)
+		X_ant_Buffer[0]=X_Buffer[127];
+	else
+		X_ant_Buffer[0]=X_Buffer[count_x-1];
 
 }
 void Save_Y_ant()
 {
 	int index=0;
-	for(index =count_y; index >= 1;index--)
+	for(index =count_y; index >0;index--)
 	{
 		Y_ant_Buffer[index]=Y_ant_Buffer[index-1];
 	}
-	Y_ant_Buffer[0]=Y_Buffer[count_y-1];
+	if(count_y == 0)
+		Y_ant_Buffer[0]=Y_Buffer[127];
+	else
+		Y_ant_Buffer[0]=Y_Buffer[count_y-1];
 }
 double Save_Y()
 {
@@ -99,9 +105,8 @@ void Reset()
 	{
 			X_ant_Buffer[index]=0;
 	}
+
 	count_n = 0;
 	count_x = 0;
 	count_y = 0;
 }
-
-
