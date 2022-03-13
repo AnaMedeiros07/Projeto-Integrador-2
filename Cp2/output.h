@@ -25,5 +25,7 @@ void Save_X_ant();
 void Save_Y_ant();
 double Save_Y();
 double Filtro_IIR();
+double Filtro_FIR();
 void Reset();
 #endif /* INC_OUTPUT_H_ */
+
