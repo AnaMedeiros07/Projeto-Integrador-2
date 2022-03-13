@@ -69,6 +69,7 @@ int Invalid();
 
 int Sampling_Period(uint8_t *buffer1);
 int Analog_Channel(uint8_t *buffer1);
+void Print_Trama(double temp);
 
 int Start(uint8_t *buffer1);
 int Stop();
@@ -92,6 +93,8 @@ int index_count=0;
 
 _Bool Sample_K = 0;
 _Bool Output=0;
+_Bool stop = 0;
+
 int K_value = 0;
 int prompt_flag;
 
@@ -135,6 +138,8 @@ int main(void)
   Init_ADC();
   receive_flag=0;
   prompt_flag = 1;
+  int counter_array = -1;
+  int index_total = 0;
 
   /* USER CODE END 2 */
 
@@ -170,17 +175,32 @@ int main(void)
 	  if(Output==1)
 	  {
 		  char result[5];
-			Write_Tx_Buffer("n", 2);
-			Write_Tx_Buffer(itoa(index_count,NULL,10),1);
-			Write_Tx_Buffer("va",2);
-			snprintf(result, 5, "%f", X_Buffer[index_count]);
-			Write_Tx_Buffer(result,1);
-			Write_Tx_Buffer("vf",2);
-			snprintf(result, 5, "%f", Y_Buffer[index_count]);
-			Write_Tx_Buffer(result,0);
-			transmite_flag=1;
-			Print();
-			Output=0;
+		  counter_array++;
+		  counter_array &= ~(1<<7);
+		  Write_Tx_Buffer("n", 2);
+		  Write_Tx_Buffer(itoa(index_total,NULL,10),1);
+		  Write_Tx_Buffer("va",2);
+		  snprintf(result, 5, "%f", X_Buffer[counter_array]);
+		  Write_Tx_Buffer(result,1);
+		  Write_Tx_Buffer("vf",2);
+		  snprintf(result, 5, "%f", Y_Buffer[counter_array]);
+		  Write_Tx_Buffer(result,0);
+		  transmite_flag=1;
+		  Print();
+
+		  index_total++;
+		  Output=0;
+	  }
+
+	  if(((counter_array > index_count) ||(counter_array < index_count)) && stop == 1){
+		  Output = 1;
+	  }
+	  else if(stop == 1){
+		  Output = 0;
+		  index_count = 0;
+		  index_total = 0;
+		  counter_array = -1;
+		  stop = 0;
 	  }
   }
     /* USER CODE END WHILE */
@@ -415,36 +435,25 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
 {
 	uint32_t adc_value = 0;
 	double temp;
+	adc_value = HAL_ADC_GetValue(hadc1);
 
+	  if(HAL_DAC_Start(&hdac, DAC1_CHANNEL_1)== HAL_OK)
+	  {
+		 HAL_DAC_SetValue(&hdac, DAC1_CHANNEL_1,DAC_ALIGN_12B_R,adc_value);
+	  }
 	if((Sample_K == 1) && (K_value != 0)){
 		K_value--;
-		adc_value = HAL_ADC_GetValue(hadc1);
-		if( adcChannel.Channel == ADC_CHANNEL_TEMPSENSOR)
-		{
-			temp=((((double)adc_value*3300/4095)-760.0)/2.5)+25;
-		}
-		else
-		{
-			 temp=((double)adc_value*3.3/4095);
-		}
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
+		temp=((((double)adc_value*3300/4095)-760.0)/2.5)+25;
+		Print_Trama(temp);
+		//temp=((double)adc_value*3.3/4095);
 	}
 	else if((Sample_K == 1) && (K_value == 0))
 		Stop();
-	else {
-		adc_value = HAL_ADC_GetValue(hadc1);
-		if( adcChannel.Channel == ADC_CHANNEL_TEMPSENSOR)
-		{
-			temp=((((double)adc_value*3300/4095)-760.0)/2.5)+25;
-		}
-		else
-		{
-			 temp=((double)adc_value*3.3/4095);
-		}
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
+	else{
+		temp=((((double)adc_value*3300/4095)-760.0)/2.5)+25;
+		Print_Trama(temp);
 	}
-
-	Print_Trama(temp);
+	//temp=((double)adc_value*3.3/4095);
  }
 
 int Sampling_Period(uint8_t *buffer1)
@@ -486,15 +495,14 @@ int Sampling_Period(uint8_t *buffer1)
 		period=atof(units)*0.000001;
 	}
 
-	time_6_clock = (65536/period);
-	prescaler = ((216000000/time_6_clock)-1);
-	if (prescaler<=0)
-	{
-	autoreload=(period*216000000)-1;
-	Timer_Configuration(autoreload,0);
-	}
-	else
-	Timer_Configuration(65535,prescaler);
+	time_6_clock = (65536/(period));
+	prescaler = ((108000000/time_6_clock));
+	autoreload=((108000000*period)/(prescaler+1))-1;
+
+	if(autoreload > 65535)
+		autoreload = 65535;
+
+	Timer_Configuration(autoreload,prescaler);
 	return 1;
 }
 
@@ -538,6 +546,7 @@ int Stop(){
 	 Reset();
 	 HAL_TIM_Base_Stop_IT(&htim6);
 
+	 stop = 1;
 	 prompt_flag = 1;
 }
 void Print_Trama(double temp)
@@ -550,13 +559,7 @@ void Print_Trama(double temp)
 	Save_X_ant();
 	Save_X_Buffer(temp);
 
-
-	 if(HAL_DAC_GetState(&hdac)!= HAL_DAC_STATE_READY)
-				  HAL_DAC_Stop(&hdac, DAC1_CHANNEL_1);
-		  if(HAL_DAC_Start(&hdac, DAC1_CHANNEL_1)== HAL_OK)
-		  {
-			 HAL_DAC_SetValue(&hdac, DAC1_CHANNEL_1,DAC_ALIGN_12B_R,((Save_Y()*4095)/3.3));
-		  }
+	Save_Y();
 	Save_Y_ant();
 	Output=1;
 
