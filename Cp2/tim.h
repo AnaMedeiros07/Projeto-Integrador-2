@@ -41,7 +41,7 @@ extern TIM_HandleTypeDef htim6;
 void MX_TIM6_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-void Timer_Configuration(int period);
+void Timer_Configuration(int autorreload, int prescaler);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
@@ -49,4 +49,3 @@ void Timer_Configuration(int period);
 #endif
 
 #endif /* __TIM_H__ */
-
