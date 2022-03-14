@@ -28,4 +28,3 @@ double Filtro_IIR();
 double Filtro_FIR();
 void Reset();
 #endif /* INC_OUTPUT_H_ */
-
