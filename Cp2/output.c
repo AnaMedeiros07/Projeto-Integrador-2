@@ -129,3 +129,4 @@ void Reset()
 	count_x = 0;
 	count_y = 0;
 }
+
