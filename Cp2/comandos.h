@@ -17,6 +17,7 @@ extern "C" {
 
 extern uint8_t b;
 extern _Bool stop;
+extern _Bool start;
 extern _Bool Output;
 extern int valid;
 extern int index_count;
@@ -33,4 +34,5 @@ void Print_Trama(double temp);
 int Start(uint8_t *buffer1);
 int Stop();
 void Print();
+
 #endif /* INC_COMANDOS_H_ */
