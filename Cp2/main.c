@@ -160,14 +160,16 @@ int main(void)
 		  Output=0;
 	  }
 
-	  if(((counter_array > index_count) ||(counter_array < index_count)) && stop == 1){
+	  if(((counter_array > index_count) ||(counter_array < index_count)) && stop == 1 && start == 1){
 		  Output = 1;
 	  }
 	  else if(stop == 1){
+		  start = 0;
 		  Output = 0;
 		  index_count = 0;
 		  index_total = 0;
 		  counter_array = -1;
+		  prompt_flag = 1;
 		  stop = 0;
 	  }
   }
