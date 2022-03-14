@@ -31,7 +31,6 @@ uint16_t Pins[]={GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4,GPIO_PIN
 uint32_t AdcChannels[]={ADC_CHANNEL_0,ADC_CHANNEL_1,ADC_CHANNEL_2,ADC_CHANNEL_3,ADC_CHANNEL_4,ADC_CHANNEL_5,ADC_CHANNEL_6,ADC_CHANNEL_7,ADC_CHANNEL_8,ADC_CHANNEL_9,ADC_CHANNEL_10,ADC_CHANNEL_11,ADC_CHANNEL_12,ADC_CHANNEL_13,ADC_CHANNEL_14,ADC_CHANNEL_15,ADC_CHANNEL_TEMPSENSOR,ADC_CHANNEL_17,ADC_CHANNEL_18};
 uint16_t gpio_adc_pins[]={GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4,GPIO_PIN_5,GPIO_PIN_6,GPIO_PIN_7,GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_0,GPIO_PIN_1,GPIO_PIN_2,GPIO_PIN_3,GPIO_PIN_4,GPIO_PIN_5};
 GPIO_TypeDef* gpio_adc_ports[]={GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOA,GPIOB,GPIOB,GPIOC,GPIOC,GPIOC,GPIOC,GPIOC,GPIOC};
-uint32_t adc_value = 0;
 _Bool int_adc=0;
 
 
@@ -227,26 +226,29 @@ void ADC_Desconfig(int pin){
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
 {
+	uint32_t adc_value;
+	adc_value = 0;
+
 	adc_value = HAL_ADC_GetValue(hadc1);
-	int_adc=1;
-	  Converter_Valor();
+	Converter_Valor(&adc_value);
 
  }
-void Converter_Valor()
+void Converter_Valor(uint32_t *adc_value)
 {
-	int_adc=0;
 	double temp=0;
 	if((Sample_K == 1) && (K_value != 0))
 	{
 		K_value--;
+		temp=((((double)(*adc_value)*3300/4095)-760.0)/2.5)+25;
+		//temp=((double)(*adc_value)*3.3/4095);
 		Print_Trama(temp);
-		temp=((double)adc_value*3.3/4095);
 	}
 	else if((Sample_K == 1) && (K_value == 0))
 		Stop();
 	else
 	{
-		temp=((double)adc_value*3.3/4095);
+		temp=((((double)(*adc_value)*3300/4095)-760.0)/2.5)+25;
+		//temp=((double)(*adc_value)*3.3/4095);
 		Print_Trama(temp);
 	}
 }
