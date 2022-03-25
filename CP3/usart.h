@@ -58,4 +58,3 @@ void Data_Reset();
 #endif
 
 #endif /* __USART_H__ */
-
