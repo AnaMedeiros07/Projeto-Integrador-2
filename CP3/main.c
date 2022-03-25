@@ -92,9 +92,9 @@ int main(void)
   MX_TIM4_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-	long int period = 65536/1;
+	long int period = 65535/(0.001);
 	long int prescaler = (108000000/period);
-	long int autoreload = ((108000000*1)/(prescaler+1))-1;
+	long int autoreload = ((108000000*0.001)/(prescaler+1))-1;
 	htim4.Instance->PSC = prescaler;
 	htim4.Instance->ARR = autoreload;
 
@@ -125,10 +125,6 @@ int main(void)
 		  receive_flag=0;
 		  transmite_flag = Check_Comand(Rx_Buffer);
 		  Print();
-		  if(valid==1)
-			  Data_Reset();
-		  else
-			  valid=1;
 		  Limpar_Rx_Buffer();
 	  }
 
@@ -225,3 +221,4 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
+
