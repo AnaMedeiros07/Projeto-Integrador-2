@@ -25,9 +25,8 @@
 #include "stdlib.h"
 #include "stdbool.h"
 #include "string.h"
-#define esc 0x1B
-#define bckspc 0x08
-#define $ 0x24
+#define increment '/'
+#define decrement '\\'
 	uint8_t UART3Rx_Buffer[256]; //guarda as mensagens para a main;
 	uint8_t Rx_Buffer[256];
     uint8_t	Rx_Buffer_Old[256];
@@ -110,7 +109,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
     /* USART3 interrupt Init */
-    HAL_NVIC_SetPriority(USART3_IRQn, 1, 0);
+    HAL_NVIC_SetPriority(USART3_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(USART3_IRQn);
   /* USER CODE BEGIN USART3_MspInit 1 */
 
@@ -155,32 +154,22 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 {
     if(huart->Instance == USART3){
         if(receive_flag == 0){
-            if((UART3Rx_Buffer[UART3Rx_index] != '\r')&&(UART3Rx_Buffer[UART3Rx_index] != '\n')&&(UART3Rx_Buffer[UART3Rx_index] != bckspc) && (UART3Rx_Buffer[UART3Rx_index] != esc)&&(UART3Rx_Buffer[UART3Rx_index] != $)){
+        	if(UART3Rx_Buffer[UART3Rx_index] == increment){
+        		Increment();
+        		HAL_UART_Receive_IT(&huart3, &UART3Rx_Buffer[UART3Rx_index], 1);
+        	}
+        	else if(UART3Rx_Buffer[UART3Rx_index] == decrement){
+        		Decrement();
+        		HAL_UART_Receive_IT(&huart3, &UART3Rx_Buffer[UART3Rx_index], 1);
+
+        	}
+        	else if((UART3Rx_Buffer[UART3Rx_index] != '\r')&&(UART3Rx_Buffer[UART3Rx_index] != '\n')){
                 Rx_Buffer[UART3Rx_index] = UART3Rx_Buffer[UART3Rx_index];
                 UART3Rx_index++;
                 UART3Rx_index &= ~(1<<7);
                 HAL_UART_Receive_IT(&huart3, &UART3Rx_Buffer[UART3Rx_index], 1);
             }
-            else if(UART3Rx_Buffer[UART3Rx_index] == bckspc)
-            {
-            	Rx_Buffer[--UART3Rx_index]='\0';
-                HAL_UART_Receive_IT(&huart3, &UART3Rx_Buffer[UART3Rx_index], 1);
 
-            }
-            else if(UART3Rx_Buffer[UART3Rx_index] == $)
-            {
-            	Limpar_Tx_Buffer();
-            	Limpar_Rx_Buffer();
-            	strcpy(Rx_Buffer,Rx_Buffer_Old);
-                HAL_UART_Receive_IT(&huart3, &UART3Rx_Buffer[UART3Rx_index], 1);
-            }
-            else if(UART3Rx_Buffer[UART3Rx_index] == esc)
-            {
-            	Limpar_Tx_Buffer();
-            	Limpar_Rx_Buffer();
-                HAL_UART_Receive_IT(&huart3, &UART3Rx_Buffer[UART3Rx_index], 1);
-
-            }
             else{
                 receive_flag = 1;
                 UART3Rx_index = 0;
@@ -244,28 +233,5 @@ void Limpar_Rx_Buffer(){
 	while(Rx_Buffer[local_index] != '\0'){
 		Rx_Buffer[local_index++] = '\0';
 	}
-}
-void Limpar_Rx_Buffer_Old()
-{
-	int local_index=0;
-		while(Rx_Buffer_Old[local_index] != '\0'){
-				Rx_Buffer_Old[local_index++] = '\0';
-			}
-}
-
-void Data_Reset(){
-    Limpar_Rx_Buffer_Old();
-    strcpy(Rx_Buffer_Old,Rx_Buffer);
-}
-#ifdef __GNUC__
-
-int __io_putchar(int ch)
-#else
-int fputc(int ch, FILE *f)
-#endif
-{
- 		HAL_UART_Transmit(&huart3, (uint8_t*) &ch,1,100);
-		transmite_flag=0;
-		return ch;
 }
 /* USER CODE END 1 */
