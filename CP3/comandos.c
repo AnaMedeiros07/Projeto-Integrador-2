@@ -16,6 +16,7 @@
 
 #define PWM_mode 0
 #define Control_mode 1
+#define Velocity_Mesure 1
 #define invalid 1
 #define Valid 1
 
@@ -28,10 +29,11 @@ _Bool start = 0;
 _Bool Sample_K = 0;*/
 
 _Bool operation_mode = 0;
+_Bool Direction;
+_Bool mesure_active = 0;
 
-int adc_validation = 0;
 int valid=1,index_count=0, K_value = 0, prompt_flag;
-_Bool (*fun_ptr_arr[])(uint8_t*) = {Operation_Mode, Enable};
+_Bool (*fun_ptr_arr[])(uint8_t*) = {Operation_Mode, Enable, Normalized_Tension, Reference_Velocity, Sampling_Period};
 _Bool (*fun_ptr_arr1[])() = {Invalid};
 
 _Bool Check_Comand(uint8_t *buffer)
@@ -62,7 +64,7 @@ _Bool Check_Comand(uint8_t *buffer)
 				switch(buffer[1]){
 					case 'n':
 					case 'N':
-						return_flag = (buffer[2] == b)? Normalized_Tension(buffer): (*fun_ptr_arr1[0])();
+						return_flag = (buffer[2] == b)? (*fun_ptr_arr[2])(buffer): (*fun_ptr_arr1[0])();
 						break;
 					default: return_flag = (*fun_ptr_arr1[0])(); break;
 				}
@@ -78,7 +80,7 @@ _Bool Check_Comand(uint8_t *buffer)
 				switch(buffer[1]){
 					case 'r':
 					case 'R':
-						return_flag = (buffer[2] == b)? (*fun_ptr_arr[1])(buffer): (*fun_ptr_arr1[0])();
+						return_flag = (buffer[2] == b)? (*fun_ptr_arr[3])(buffer): (*fun_ptr_arr1[0])();
 						break;
 					default: return_flag = (*fun_ptr_arr1[0])(); break;
 				}
@@ -86,6 +88,32 @@ _Bool Check_Comand(uint8_t *buffer)
 			else{
 				Write_Tx_Buffer("Modo de PWM ativo!!", 0);
 				return_flag = invalid;
+			}
+			break;
+		case 'H':
+		case 'h':
+			switch(buffer[1]){
+				case 'w':
+				case 'W':   return_flag = (buffer[2] == b)? (*fun_ptr_arr[4])(buffer): (*fun_ptr_arr1[0])();
+							mesure_ative = Velocity_Mesure;
+							break;
+				default:	return_flag = (*fun_ptr_arr1[0])(); break;
+			}
+		break;
+		case 'M':
+		case 'm':
+			switch(buffer[1]){
+				case 'V':
+				case 'v':
+					if(mesure_active == Velocity_Mesure)
+						return_flag = (buffer[2] == '\r')? (*fun_ptr_arr[5])(buffer): (*fun_ptr_arr1[0])();
+					else{
+						Write_Tx_Buffer("Defina primeiro um periodo de amostragem!!", 0);
+						return_flag = invalid;
+					}
+
+					break;
+				default:	return_flag = (*fun_ptr_arr1[0])(); break;
 			}
 			break;
 		case '\0': Write_Tx_Buffer("Insira um comando!!!",0);
@@ -214,5 +242,22 @@ _Bool Enable(uint8_t *buffer1){
 		default:
 			return_flag =  (*fun_ptr_arr1[1])();
 			break;
+	}
+	return return_flag;
+}
+
+void Increment(){
+	switch(operation_mode){
+		case PWM_mode: Increment_Duty(); break;
+		case Control_mode: Increment_Velocity(); break;
+		default: break;
+	}
+}
+
+void Decrement(){
+	switch(operation_mode){
+		case PWM_mode: Decrement_Duty(); break;
+		case Control_mode: Decrement_Velocity(); break;
+		default: break;
 	}
 }
