@@ -21,10 +21,8 @@ extern "C" {
 #define Clock 1
 #define Anti_Clock 1
 
-
+extern _Bool Direction;
 extern uint8_t b;
-extern _Bool stop;
-extern _Bool start;
 extern _Bool Output;
 extern int valid;
 extern int index_count;
