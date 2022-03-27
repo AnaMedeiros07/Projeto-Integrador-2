@@ -26,15 +26,14 @@ extern uint8_t b;
 extern _Bool Output;
 extern int valid;
 extern int index_count;
-extern int K_value;
-extern _Bool Sample_K;
 extern int adc_validation;
 extern int prompt_flag;
 
 _Bool Check_Comand(uint8_t *buffer);
 _Bool Invalid();
-_Bool Sampling_Period(uint8_t *buffer1);
 _Bool Operation_Mode(uint8_t *buffer1);
+void Increment();
+void Decrement();
 void Print_Trama(double temp);
 _Bool Enable(uint8_t *buffer1);
 void Print();

@@ -90,11 +90,12 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_TIM4_Init();
+  MX_TIM6_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-	long int period = 65535/(0.001);
+	long int period = 65535/(1);
 	long int prescaler = (108000000/period);
-	long int autoreload = ((108000000*0.001)/(prescaler+1))-1;
+	long int autoreload = ((108000000*1)/(prescaler+1))-1;
 	htim4.Instance->PSC = prescaler;
 	htim4.Instance->ARR = autoreload;
 

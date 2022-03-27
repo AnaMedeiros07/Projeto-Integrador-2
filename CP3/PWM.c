@@ -9,11 +9,11 @@
 int duty_cycle;
 
 void Init_PWM_Control (){
-	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_2);
 }
 
 void DeInit_PWM_Control (){
-	HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_1);
+	HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_2);
 	duty_cycle = 0;
 	Change_Duty();
 }
@@ -57,13 +57,13 @@ _Bool Change_Duty(){
 	if((duty_cycle >= -100) && (duty_cycle < 0)){
 		Direction = Anti_Clock;
 		float duty = (float)(duty_cycle*(-1))/100;
-		htim4.Instance->CCR1 = duty*(htim4.Instance->ARR);
+		htim4.Instance->CCR2 = duty*(htim4.Instance->ARR);
 		return_flag = Valid;
 	}
 	else if((duty_cycle >= 0) && (duty_cycle <= 100)){
 		Direction = Clock;
 		float duty = (float)duty_cycle/100;
-		htim4.Instance->CCR1 = duty*(htim4.Instance->ARR);
+		htim4.Instance->CCR2 = duty*(htim4.Instance->ARR);
 		return_flag = Valid;
 	}
 	else{

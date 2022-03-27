@@ -6,6 +6,8 @@
  */
 #include "comandos.h"
 #include "PWM.h"
+#include "Velocity_Control.h"
+#include "Velocity_Mesure.h"
 #include "tim.h"
 #include "usart.h"
 #include "string.h"
@@ -24,16 +26,14 @@
 uint8_t b =0x20;
 
 /*_Bool Output=0;
-_Bool stop = 0;
-_Bool start = 0;
-_Bool Sample_K = 0;*/
+*/
 
 _Bool operation_mode = 0;
 _Bool Direction;
 _Bool mesure_active = 0;
 
-int valid=1,index_count=0, K_value = 0, prompt_flag;
-_Bool (*fun_ptr_arr[])(uint8_t*) = {Operation_Mode, Enable, Normalized_Tension, Reference_Velocity, Sampling_Period};
+int valid=1,index_count=0, prompt_flag;
+_Bool (*fun_ptr_arr[])(uint8_t*) = {Operation_Mode, Enable, Normalized_Tension, Reference_Velocity, Sampling_Period,Velocity_Units};
 _Bool (*fun_ptr_arr1[])() = {Invalid};
 
 _Bool Check_Comand(uint8_t *buffer)
@@ -95,7 +95,7 @@ _Bool Check_Comand(uint8_t *buffer)
 			switch(buffer[1]){
 				case 'w':
 				case 'W':   return_flag = (buffer[2] == b)? (*fun_ptr_arr[4])(buffer): (*fun_ptr_arr1[0])();
-							mesure_ative = Velocity_Mesure;
+							mesure_active = Velocity_Mesure;
 							break;
 				default:	return_flag = (*fun_ptr_arr1[0])(); break;
 			}
@@ -116,6 +116,21 @@ _Bool Check_Comand(uint8_t *buffer)
 				default:	return_flag = (*fun_ptr_arr1[0])(); break;
 			}
 			break;
+		case 'F':
+		case 'f':
+			switch(buffer[1]){
+				case 'S':
+				case 's':
+					switch(buffer[2]){
+					case 'W':
+					case 'w':
+						return_flag = (buffer[3]=='\r')?(*fun_ptr_arr[6])(buffer): (*fun_ptr_arr1[0])();
+					}
+					break;
+					default : return_flag =  (*fun_ptr_arr1[0])(); break;
+				break;
+			}
+
 		case '\0': Write_Tx_Buffer("Insira um comando!!!",0);
 				   return_flag = invalid;
 				   break;
@@ -247,7 +262,7 @@ _Bool Enable(uint8_t *buffer1){
 }
 
 void Increment(){
-	switch(operation_mode){
+		switch(operation_mode){
 		case PWM_mode: Increment_Duty(); break;
 		case Control_mode: Increment_Velocity(); break;
 		default: break;
