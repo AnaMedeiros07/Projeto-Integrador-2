@@ -28,6 +28,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "stdio.h"
+#include "Velocity_Mesure.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -90,8 +91,9 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_TIM4_Init();
-  MX_TIM6_Init();
   MX_USART3_UART_Init();
+  MX_TIM2_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 	long int period = 65535/(1);
 	long int prescaler = (108000000/period);

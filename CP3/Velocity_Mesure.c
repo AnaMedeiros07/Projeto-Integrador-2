@@ -10,6 +10,8 @@
 #define RPM 1
 #define Hz 1
 #define rad 1
+#define Pulses 1
+#define Timer 2
 float constant=0;
 _Bool start=0;
 _Bool stop=0;
@@ -21,6 +23,7 @@ uint32_t next_time = 0;
 uint32_t result = 0;
 float freq = 0;
 _Bool first = 0;
+int Freq_Calcul = 0;
 
 
 
@@ -116,7 +119,7 @@ _Bool Sampling_Period(uint8_t *buffer1)
         if(autoreload > 65535)
             autoreload = 65535;
 
-      //  Timer_Configuration(autoreload,prescaler);
+     Timer_Configuration(autoreload,prescaler);
     }
 
     row_number = 0;
@@ -138,17 +141,17 @@ _Bool Start(uint8_t *buffer1)
 		case 0:
 			Sample_K = 0;
 			prompt_flag = 0;
-			HAL_TIM_Base_Stop(&htim4);
-			HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
-			HAL_TIM_Base_Start(&htim2);
+			//HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
+			//HAL_TIM_Base_Start(&htim2);
+			HAL_TIM_Base_Start_IT(&htim3);
 			break;
 		case 1:
 			K_value = atoi(string_array[1]);
 			Sample_K = 1;
 			prompt_flag = 0;
-			HAL_TIM_Base_Stop(&htim4);
 			HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
 			HAL_TIM_Base_Start(&htim2);
+			HAL_TIM_Base_Start_IT(&htim3);
 			break;
 		default:
 			Write_Tx_Buffer("Dados inseridos invalidos!! Escreva novamente...", 0);
@@ -161,13 +164,14 @@ _Bool Start(uint8_t *buffer1)
 
 _Bool Stop(){
 
-     //HAL_TIM_Base_Stop_IT(&htim6);
-     HAL_TIM_Base_Stop_IT(&htim2);
-     HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_1);
-     count_pulses = 0;
-     previous_time = 0;
-     next_time = 0;
-     stop = 1;
+		HAL_TIM_Base_Stop_IT(&htim2);
+		HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_1);
+		HAL_TIM_Base_Stop(&htim3);
+		HAL_TIM_Base_Stop_IT(&htim3);
+		count_pulses = 0;
+		previous_time = 0;
+		next_time = 0;
+		stop = 1;
 
      return Valid;
 }
@@ -296,15 +300,29 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){
 			{
 				result=(0xffffffff-previous_time)+next_time;
 			}
-			float refClock=108000000.0/(TIM2->PSC);
-			freq= refClock/result;
-
 			__HAL_TIM_SET_COUNTER(htim2,0);
 			first=0;
-			printf("%f\n\r",freq);
 		}
 
-			HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
+		direction();
+		++count_pulses;
 	}
 }
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){
+	if(htim == &htim3){
+		int limit_pulses = 2;
+		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
+		if(count_pulses > limit_pulses){
+			Freq_Calcul = Pulses;
+			//Calculo de pulsos
+			count_pulses = 0;
+		}
+		else{
+			Freq_Calcul = Timer;
+			float refClock=108000000.0/(TIM2->PSC);
+			freq= refClock/result;
+		}
+
+	}
+}
