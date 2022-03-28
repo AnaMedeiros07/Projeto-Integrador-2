@@ -33,8 +33,8 @@ _Bool Direction;
 _Bool mesure_active = 0;
 
 int valid=1,index_count=0, prompt_flag;
-_Bool (*fun_ptr_arr[])(uint8_t*) = {Operation_Mode, Enable, Normalized_Tension, Reference_Velocity, Sampling_Period,Velocity_Units};
-_Bool (*fun_ptr_arr1[])() = {Invalid};
+_Bool (*fun_ptr_arr[])(uint8_t*) = {Operation_Mode, Enable, Normalized_Tension, Reference_Velocity, Sampling_Period,Velocity_Units, Start};
+_Bool (*fun_ptr_arr1[])() = {Invalid, Stop};
 
 _Bool Check_Comand(uint8_t *buffer)
  {
@@ -99,22 +99,6 @@ _Bool Check_Comand(uint8_t *buffer)
 							break;
 				default:	return_flag = (*fun_ptr_arr1[0])(); break;
 			}
-		break;
-		case 'M':
-		case 'm':
-			switch(buffer[1]){
-				case 'V':
-				case 'v':
-					if(mesure_active == Velocity_Mesure)
-						return_flag = (buffer[2] == '\r')? (*fun_ptr_arr[5])(buffer): (*fun_ptr_arr1[0])();
-					else{
-						Write_Tx_Buffer("Defina primeiro um periodo de amostragem!!", 0);
-						return_flag = invalid;
-					}
-
-					break;
-				default:	return_flag = (*fun_ptr_arr1[0])(); break;
-			}
 			break;
 		case 'F':
 		case 'f':
@@ -124,13 +108,38 @@ _Bool Check_Comand(uint8_t *buffer)
 					switch(buffer[2]){
 					case 'W':
 					case 'w':
-						return_flag = (buffer[3]=='\r')?(*fun_ptr_arr[6])(buffer): (*fun_ptr_arr1[0])();
+						return_flag = (buffer[3]=='\r')?(*fun_ptr_arr[5])(buffer): (*fun_ptr_arr1[0])();
 					}
 					break;
 					default : return_flag =  (*fun_ptr_arr1[0])(); break;
 				break;
 			}
-
+			break;
+		case 'S':
+		case 's':
+			switch(buffer[1]){
+				case 'w':
+				case 'W':
+					//if(mesure_active == Velocity_Mesure)
+						return_flag = ((buffer[2] == '\0') || (buffer[2] == b))? (*fun_ptr_arr[6])(buffer): (*fun_ptr_arr1[0])();
+					/*else{
+						Write_Tx_Buffer("Defina primeiro um periodo de amostragem!!", 0);
+						return_flag = invalid;
+					}*/
+					break;
+				case 't':
+				case 'T':
+				switch(buffer[2]){
+					case 'w':
+					case 'W':
+						return_flag = (buffer[3] == '\0')? (*fun_ptr_arr1[1])(): (*fun_ptr_arr1[0])();
+						break;
+					default: return_flag = (*fun_ptr_arr1[0])(); break;
+				}
+				break;
+				default:	return_flag = (*fun_ptr_arr1[0])(); break;
+			}
+			break;
 		case '\0': Write_Tx_Buffer("Insira um comando!!!",0);
 				   return_flag = invalid;
 				   break;
