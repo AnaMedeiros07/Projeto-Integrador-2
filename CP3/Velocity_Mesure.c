@@ -6,12 +6,14 @@
  */
 
 #include "Velocity_Mesure.h"
-#define RPS 1
-#define RPM 1
-#define Hz 1
-#define rad 1
+#define RPS 1/16
+#define RPM (1/16)*60
+#define Hz 1/16
+#define rad (1/16)*(2*M_PI)
 #define Pulses 1
 #define Timer 2
+#define lm_res 2
+#define lm_en 10000 // ver isto
 float constant=0;
 _Bool start=0;
 _Bool stop=0;
@@ -24,8 +26,8 @@ uint32_t result = 0;
 float freq = 0;
 _Bool first = 0;
 int Freq_Calcul = 0;
-
-
+float Velocity=0;
+float period=0;
 
 int Units_Processement(char string_array[6][6], float *period){
     int return_variable;
@@ -95,8 +97,7 @@ int Units_Processement(char string_array[6][6], float *period){
 _Bool Sampling_Period(uint8_t *buffer1)
 {
     int prescaler=0, row_number = 0;
-    long int time_6_clock=0,autoreload=0;
-    float period=0;
+    long int time_3_clock=0,autoreload=0;
     char string_array[6][6];
 
    //--------------------------------------------
@@ -108,12 +109,12 @@ _Bool Sampling_Period(uint8_t *buffer1)
         return 1;
     }
     //---------------------------------------------
-    if(Units_Processement(string_array, &period))
+    if(Units_Processement(string_array, &period))//
         return 1;
 
     if(period > 0){
-        time_6_clock = (65536/(period));
-        prescaler = ((108000000/time_6_clock));
+        time_3_clock = (65536/(period));
+        prescaler = ((108000000/time_3_clock));
         autoreload=((108000000*period)/(prescaler+1))-1;
 
         if(autoreload > 65535)
@@ -282,26 +283,29 @@ void direction() //PD1 = sensor A, PD0 = sensor B
 		Direction=Anti_Clock;
 }
 
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){  // ISR_H
 	if(htim2->Channel == HAL_TIM_ACTIVE_CHANNEL_1){
-		if(first ==0)
+		if(lm_en> count_pulses)
 		{
-			previous_time=HAL_TIM_ReadCapturedValue(htim2,TIM_CHANNEL_1);
-			first=1;
-		}
-		else
-		{
-			next_time=HAL_TIM_ReadCapturedValue(htim2,TIM_CHANNEL_1);
-			if(next_time>previous_time)
+			if(first ==0)
 			{
-				result=next_time-previous_time;
+				previous_time=HAL_TIM_ReadCapturedValue(htim2,TIM_CHANNEL_1);
+				first=1;
 			}
-			else if(next_time<previous_time)
+			else
 			{
-				result=(0xffffffff-previous_time)+next_time;
+				next_time=HAL_TIM_ReadCapturedValue(htim2,TIM_CHANNEL_1);
+				if(next_time>previous_time)
+				{
+					result=next_time-previous_time;
+				}
+				else if(next_time<previous_time)
+				{
+					result=(0xffffffff-previous_time)+next_time;
+				}
+				__HAL_TIM_SET_COUNTER(htim2,0);
+				first=0;
 			}
-			__HAL_TIM_SET_COUNTER(htim2,0);
-			first=0;
 		}
 
 		direction();
@@ -309,20 +313,18 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){
 	}
 }
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
 	if(htim == &htim3){
-		int limit_pulses = 2;
 		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
-		if(count_pulses > limit_pulses){
-			Freq_Calcul = Pulses;
-			//Calculo de pulsos
-			count_pulses = 0;
+		if(count_pulses > lm_res && lm_en> count_pulses){
+			Freq_Calcul = Pulses; // o que é isto?
+			Velocity= constant*count_pulses*period;
 		}
 		else{
-			Freq_Calcul = Timer;
+			Freq_Calcul = Timer; // o que é isto?
 			float refClock=108000000.0/(TIM2->PSC);
 			freq= refClock/result;
 		}
-
+		count_pulses = 0;
 	}
 }
