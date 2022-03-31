@@ -6,13 +6,13 @@
  */
 
 #include "Velocity_Mesure.h"
-#define RPS 1/16
-#define RPM (1/16)*60
-#define Hz 1/16
-#define rad (1/16)*(2*M_PI)
-#define Pulses 1
-#define Timer 2
-#define lm_res 2
+#define _RPS 1
+#define _RPM 2
+#define _Hz 3
+#define _rad 4
+#define Pulses 0
+#define Timer 1
+#define lm_res 6
 #define lm_en 10000 // ver isto
 float constant=0;
 _Bool start=0;
@@ -28,7 +28,14 @@ _Bool first = 0;
 int Freq_Calcul = 0;
 float Velocity=0;
 float period=0;
-
+float Velocity_Buffer[256];
+int index_velocity=0;
+_Bool Output =0;
+float RPS =(float)1;
+float RPM =((float)60*(1/16));
+float Hz =((float)(1/16));
+float rad =((float)(2*M_PI)*(1/16));
+int type =0;
 int Units_Processement(char string_array[6][6], float *period){
     int return_variable;
     return_variable = 0;
@@ -137,13 +144,13 @@ _Bool Start(uint8_t *buffer1)
 	return_value = 0;
 	clean_string_array(string_array);
 	row_number = Parsing(buffer1, string_array);
-
+	Reset();
 	switch(row_number){
 		case 0:
 			Sample_K = 0;
 			prompt_flag = 0;
-			//HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
-			//HAL_TIM_Base_Start(&htim2);
+			HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
+			HAL_TIM_Base_Start(&htim2);
 			HAL_TIM_Base_Start_IT(&htim3);
 			break;
 		case 1:
@@ -176,7 +183,15 @@ _Bool Stop(){
 
      return Valid;
 }
-
+void Reset()
+{
+	int index=0;
+	for(index = 0; index <=255;index++)
+	{
+		Velocity_Buffer[index]=0.0;
+	}
+	index_velocity=0;
+}
 _Bool Units_Processement_Velocity(char string_array[6][6])
 {
     _Bool return_variable;
@@ -196,6 +211,7 @@ _Bool Units_Processement_Velocity(char string_array[6][6])
                         if (string_array[1][3] == '\0')
                         {
                             constant =RPM;
+                            type=_RPM;
                         }
                         else
                         {
@@ -208,6 +224,7 @@ _Bool Units_Processement_Velocity(char string_array[6][6])
                         if (string_array[1][3] == '\0')
                         {
                             constant =RPS;
+                            type =_RPS;
                         }
                         else
                         {
@@ -224,6 +241,7 @@ _Bool Units_Processement_Velocity(char string_array[6][6])
                         if (string_array[1][3] == '\0')
                         {
                             constant =rad;
+                            type = _rad;
                         }
                         else
                         {
@@ -240,6 +258,7 @@ _Bool Units_Processement_Velocity(char string_array[6][6])
             if (string_array[1][2] == '\0')
             {
                 constant =Hz;
+                type = _Hz;
             }
             else
             {
@@ -266,7 +285,7 @@ _Bool Velocity_Units(uint8_t *buffer1)
 	row_number = Parsing(buffer1, string_array);
 	if(Units_Processement_Velocity(string_array))
 	        return 1;
-    if(row_number !=2){
+    if(row_number !=1){
         Write_Tx_Buffer("Dados inseridos invalidos!! Escreva novamente...", 0);
         return 1;
     }
@@ -285,7 +304,7 @@ void direction() //PD1 = sensor A, PD0 = sensor B
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){  // ISR_H
 	if(htim2->Channel == HAL_TIM_ACTIVE_CHANNEL_1){
-		if(lm_en> count_pulses)
+		if(Freq_Calcul = Timer)
 		{
 			if(first ==0)
 			{
@@ -306,10 +325,11 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){  // ISR_H
 				__HAL_TIM_SET_COUNTER(htim2,0);
 				first=0;
 			}
-		}
 
+		}
 		direction();
 		++count_pulses;
+
 	}
 }
 
@@ -318,13 +338,25 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
 		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
 		if(count_pulses > lm_res && lm_en> count_pulses){
 			Freq_Calcul = Pulses; // o que é isto?
-			Velocity= constant*count_pulses*period;
+			Velocity= constant*count_pulses*(float)(1/period);
 		}
-		else{
+		else if ( first){
 			Freq_Calcul = Timer; // o que é isto?
 			float refClock=108000000.0/(TIM2->PSC);
 			freq= refClock/result;
+			if (type == _Hz || type == RPS )
+				Velocity=freq;
+			else if ( type == _RPM)
+				Velocity=freq*60;
+			else if( type == _rad)
+				Velocity = freq*2*M_PI;
 		}
+
+		Velocity_Buffer[index_velocity]=Velocity;
+		++index_velocity;
+		index_velocity &= ~(1<<7);
 		count_pulses = 0;
+		Output=1;
 	}
 }
+
