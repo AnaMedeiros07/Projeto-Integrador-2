@@ -100,6 +100,8 @@ int main(void)
 	long int autoreload = ((108000000*1)/(prescaler+1))-1;
 	htim4.Instance->PSC = prescaler;
 	htim4.Instance->ARR = autoreload;
+	int counter_array=-1;
+	int index_total=0;
 
   init_UART3();
   receive_flag=0;
@@ -130,7 +132,32 @@ int main(void)
 		  Print();
 		  Limpar_Rx_Buffer();
 	  }
+	  if(Output==1)
+	  	  {
+	  		  char result[10];
+	  		  counter_array++;
+	  		  counter_array &= ~(1<<7);
+	  		  Write_Tx_Buffer("Velocity = ", 2);
+	  		  snprintf(result, 5, "%f", Velocity_Buffer[counter_array]);
+	  		  Write_Tx_Buffer(result,0);
+	  		 transmite_flag=1;
+			  Print();
+			  index_total++;
+			  Output=0;
+	  	  }
 
+	  if(((counter_array > index_velocity) ||(counter_array < index_velocity)) && stop == 1 && start == 1){
+	  		  Output = 1;
+	  	  }
+	  	  else if(stop == 1){
+	  		  start = 0;
+	  		  Output = 0;
+	  		  index_count = 0;
+	  		  index_total = 0;
+	  		  counter_array = -1;
+	  		  prompt_flag = 1;
+	  		  stop = 0;
+	  	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
