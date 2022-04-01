@@ -11,7 +11,6 @@ int velocity = 0;
 _Bool Reference_Velocity(uint8_t *buffer1){
 	_Bool return_flag, Validation;
 	int row_number = 0;
-	int velocity = 0;
 	char string_array[6][6];
 
 	clean_string_array(string_array);
@@ -46,10 +45,12 @@ _Bool Change_Velocity(){
 	_Bool return_flag;
 
 	if((velocity >= -160) && (velocity < 0)){
+		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
 		Direction = Anti_Clock;
 		return_flag = 1;
 	}
 	else if((velocity >= 0) && (velocity <= 160)){
+		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_14);
 		Direction = Clock;
 		return_flag = 1;
 	}

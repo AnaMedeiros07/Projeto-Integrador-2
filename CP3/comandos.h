@@ -18,7 +18,7 @@ extern "C" {
 #define Control_mode 1
 #define invalid 1
 #define Valid 1
-#define Clock 1
+#define Clock 0
 #define Anti_Clock 1
 
 extern _Bool Direction;

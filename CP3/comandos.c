@@ -108,7 +108,7 @@ _Bool Check_Comand(uint8_t *buffer)
 					switch(buffer[2]){
 					case 'W':
 					case 'w':
-						return_flag = (buffer[3]=='\r')?(*fun_ptr_arr[5])(buffer): (*fun_ptr_arr1[0])();
+						return_flag = (buffer[3]==b)?(*fun_ptr_arr[5])(buffer): (*fun_ptr_arr1[0])();
 					}
 					break;
 					default : return_flag =  (*fun_ptr_arr1[0])(); break;

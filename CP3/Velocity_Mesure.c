@@ -10,10 +10,10 @@
 #define _RPM 2
 #define _Hz 3
 #define _rad 4
-#define Pulses 0
-#define Timer 1
-#define lm_res 6
-#define lm_en 10000 // ver isto
+#define Pulses 1
+#define Timer 0
+#define lm_en 372
+#define lm_res 342
 float constant=0;
 _Bool start=0;
 _Bool stop=0;
@@ -31,10 +31,10 @@ float period=0;
 float Velocity_Buffer[256];
 int index_velocity=0;
 _Bool Output =0;
-float RPS =(float)1;
-float RPM =((float)60*(1/16));
-float Hz =((float)(1/16));
-float rad =((float)(2*M_PI)*(1/16));
+float RPS =((float)1/960);
+float RPM =((float)60/960);
+float Hz =((float)1/960);
+float rad =((float)(2*M_PI/960));
 int type =0;
 int Units_Processement(char string_array[6][6], float *period){
     int return_variable;
@@ -152,6 +152,7 @@ _Bool Start(uint8_t *buffer1)
 			HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
 			HAL_TIM_Base_Start(&htim2);
 			HAL_TIM_Base_Start_IT(&htim3);
+			Freq_Calcul = Timer;
 			break;
 		case 1:
 			K_value = atoi(string_array[1]);
@@ -160,6 +161,7 @@ _Bool Start(uint8_t *buffer1)
 			HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
 			HAL_TIM_Base_Start(&htim2);
 			HAL_TIM_Base_Start_IT(&htim3);
+			Freq_Calcul = Timer;
 			break;
 		default:
 			Write_Tx_Buffer("Dados inseridos invalidos!! Escreva novamente...", 0);
@@ -179,6 +181,7 @@ _Bool Stop(){
 		count_pulses = 0;
 		previous_time = 0;
 		next_time = 0;
+		first = 0;
 		stop = 1;
 
      return Valid;
@@ -294,7 +297,7 @@ _Bool Velocity_Units(uint8_t *buffer1)
 
 void direction() //PD1 = sensor A, PD0 = sensor B
 {
-	if(HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_0)==0)
+	if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6)==0)
 	{
 		Direction=Clock;
 	}
@@ -304,7 +307,7 @@ void direction() //PD1 = sensor A, PD0 = sensor B
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){  // ISR_H
 	if(htim2->Channel == HAL_TIM_ACTIVE_CHANNEL_1){
-		if(Freq_Calcul = Timer)
+		if(Freq_Calcul == Timer)
 		{
 			if(first ==0)
 			{
@@ -335,28 +338,59 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){  // ISR_H
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
 	if(htim == &htim3){
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
-		if(count_pulses > lm_res && lm_en> count_pulses){
-			Freq_Calcul = Pulses; // o que é isto?
-			Velocity= constant*count_pulses*(float)(1/period);
-		}
-		else if ( first){
-			Freq_Calcul = Timer; // o que é isto?
-			float refClock=108000000.0/(TIM2->PSC);
-			freq= refClock/result;
-			if (type == _Hz || type == RPS )
-				Velocity=freq;
-			else if ( type == _RPM)
-				Velocity=freq*60;
-			else if( type == _rad)
-				Velocity = freq*2*M_PI;
-		}
+		if((Sample_K == 1) && (K_value != 0))
+		    {
+		        K_value--;
+		        HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
+		        if(count_pulses > (lm_en*period)){
+					Velocity= constant*count_pulses*(float)(1/period);
+					Freq_Calcul = Pulses;
+				}
+				if ((count_pulses < (lm_res*period)) || (count_pulses < (lm_en*period))){
+					float refClock=108000000.0/(TIM2->PSC);
+					freq= refClock/result;
+					if (type == _Hz || type == _RPS )
+						Velocity=((float)freq/960);
+					else if ( type == _RPM)
+						Velocity=freq*((float)60/960);
+					else if( type == _rad)
+						Velocity = freq*(2*((float)M_PI/960));
+					Freq_Calcul = Timer;
+				}
 
-		Velocity_Buffer[index_velocity]=Velocity;
-		++index_velocity;
-		index_velocity &= ~(1<<7);
-		count_pulses = 0;
-		Output=1;
+				Velocity_Buffer[index_velocity]=Velocity;
+				++index_velocity;
+				index_velocity &= ~(1<<7);
+				count_pulses = 0;
+				Output=1;
+
+		    }
+		    else if((Sample_K == 1) && (K_value == 0))
+		        Stop();
+		    else
+		    {
+		    	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
+				if(count_pulses > (lm_en*period)){
+					Velocity= constant*count_pulses*(float)(1/period);
+					Freq_Calcul = Pulses;
+				}
+				if ((count_pulses < (lm_res*period)) || (count_pulses < (lm_en*period))){
+					float refClock=108000000.0/(TIM2->PSC);
+					freq= refClock/result;
+					if (type == _Hz || type == _RPS )
+						Velocity=((float)freq/960);
+					else if ( type == _RPM)
+						Velocity=freq*((float)60/960);
+					else if( type == _rad)
+						Velocity = freq*(2*((float)M_PI/960));
+					Freq_Calcul = Timer;
+				}
+
+				Velocity_Buffer[index_velocity]=Velocity;
+				++index_velocity;
+				index_velocity &= ~(1<<7);
+				count_pulses = 0;
+				Output=1;
+		    }
 	}
 }
-

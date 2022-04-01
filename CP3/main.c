@@ -95,9 +95,9 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-	long int period = 65535/(1);
+	long int period = 65535/(0.002);
 	long int prescaler = (108000000/period);
-	long int autoreload = ((108000000*1)/(prescaler+1))-1;
+	long int autoreload = ((108000000*0.002)/(prescaler+1))-1;
 	htim4.Instance->PSC = prescaler;
 	htim4.Instance->ARR = autoreload;
 	int counter_array=-1;
@@ -138,7 +138,7 @@ int main(void)
 	  		  counter_array++;
 	  		  counter_array &= ~(1<<7);
 	  		  Write_Tx_Buffer("Velocity = ", 2);
-	  		  snprintf(result, 5, "%f", Velocity_Buffer[counter_array]);
+	  		  snprintf(result, 10, "%f", Velocity_Buffer[counter_array]);
 	  		  Write_Tx_Buffer(result,0);
 	  		 transmite_flag=1;
 			  Print();
@@ -146,7 +146,7 @@ int main(void)
 			  Output=0;
 	  	  }
 
-	  if(((counter_array > index_velocity) ||(counter_array < index_velocity)) && stop == 1 && start == 1){
+	  if(((counter_array > index_velocity-1) ||(counter_array < index_velocity-1)) && stop == 1 && start == 1){
 	  		  Output = 1;
 	  	  }
 	  	  else if(stop == 1){

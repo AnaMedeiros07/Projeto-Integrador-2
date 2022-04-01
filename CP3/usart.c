@@ -109,7 +109,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
     /* USART3 interrupt Init */
-    HAL_NVIC_SetPriority(USART3_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(USART3_IRQn, 2, 0);
     HAL_NVIC_EnableIRQ(USART3_IRQn);
   /* USER CODE BEGIN USART3_MspInit 1 */
 
@@ -233,5 +233,17 @@ void Limpar_Rx_Buffer(){
 	while(Rx_Buffer[local_index] != '\0'){
 		Rx_Buffer[local_index++] = '\0';
 	}
+}
+
+#ifdef __GNUC__
+
+int __io_putchar(int ch)
+#else
+int fputc(int ch, FILE *f)
+#endif
+{
+ 		HAL_UART_Transmit(&huart3, (uint8_t*) &ch,1,100);
+		transmite_flag=0;
+		return ch;
 }
 /* USER CODE END 1 */

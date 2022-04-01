@@ -38,5 +38,4 @@ void direction();
 _Bool Start(uint8_t *buffer1);
 _Bool Stop();
 void Reset();
-void time_calculator();
 #endif / INC_VELOCITY_MESUREH */
