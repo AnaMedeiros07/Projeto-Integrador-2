@@ -35,21 +35,24 @@ extern "C" {
 extern UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN Private defines */
-	extern uint8_t Rx_Buffer[]; //guarda as mensagens para a main;
-	extern int receive_flag;
-	extern int transmite_flag;
 
+extern uint8_t Rx_Buffer[256];
+
+extern _Bool transmite_flag;
+extern _Bool receive_flag;
 /* USER CODE END Private defines */
 
 void MX_USART3_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 void init_UART3();
-void Write_Tx_Buffer(char *pdata,int flag);
-void Limpar_Tx_Buffer();
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart);
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart);
+void Write_Tx_Buffer(char *pdata, int flag);
 void Tx_Transmition();
-void Limpar_Rx_Buffer_Old();
+void Limpar_Tx_Buffer();
 void Limpar_Rx_Buffer();
+void Limpar_Rx_Buffer_Old();
 void Data_Reset();
 /* USER CODE END Prototypes */
 

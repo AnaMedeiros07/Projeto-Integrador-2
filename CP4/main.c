@@ -25,10 +25,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "Comandos.h"
-#include "stdlib.h"
-#include "string.h"
-#include "stdio.h"
-#include "math.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -95,11 +91,9 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
-	int counter_array=-1;
-	int index_total=0;
-
-	receive_flag=0;
-	prompt_flag = 1;
+init_UART3();
+receive_flag = 0;
+prompt_flag = 1;
 
   /* USER CODE END 2 */
 
@@ -107,61 +101,29 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(prompt_flag == 1) 							// Escreve o Prompt no início de cada comando desejado pelo utilizador
-	  {
+	  if(prompt_flag == 1){
 		  Write_Tx_Buffer(">", 1);
-		  transmite_flag=1;
+		  transmite_flag = 1;
+		  prompt_flag = 0;
 		  Print();
 	  }
-	  prompt_flag = 0;
 
-
-	  if(receive_flag==1) 							//Quando utilizador envia um comando, entra neste if para comando ser processado
-	  {
+	  if(receive_flag == 1){
 		  prompt_flag = 1;
 		  Write_Tx_Buffer(Rx_Buffer, 0);
-		  transmite_flag=1;
-		  Print(); 									//Echo do comando dado pelo utilizador
-		  receive_flag=0;
-		  transmite_flag = Check_Comand(Rx_Buffer); //Verifica se o comando é válido e, caso sejo, processa os dados enviados com este
+		  transmite_flag = 0;
 		  Print();
-		/*  if(valid==1)
-			  Data_Reset();							//Atualiza Rx_Buffer_Old(guarda os comandos antigos) caso o comando seja válido
-		  else
-			  valid=1;
-		  Limpar_Rx_Buffer();		*/				// Limpa os dados no Rx_Buffer para nova recessão
-	  }
-
-	  /*if(Output==1)
-	  {
-		  char result[10];
-		  counter_array++;
-		  counter_array &= ~(1<<7);
-		  Write_Tx_Buffer("Posicao = ", 2);
-		  snprintf(result, 10, "%f", Velocity_Buffer[counter_array]);
-		  Write_Tx_Buffer(result,0);
-		 transmite_flag=1;
+		  receive_flag = 0;
+		  transmite_flag = Check_Comand(Rx_Buffer);
 		  Print();
-		  index_total++;
-		  Output=0;
-	  }*/
-
-	 /* if(((counter_array > index_velocity-1) ||(counter_array < index_velocity-1)) && stop == 1 && start == 1){
-		  Output = 1;
+		  if(valid == 1)
+			  Data_Reset();
+		  Limpar_Rx_Buffer();
 	  }
-	  else if(stop == 1){
-		  start = 0;
-		  Output = 0;
-		  index_total = 0;
-		  counter_array = -1;
-		  prompt_flag = 1;
-		  stop = 0;
-	  }*/
-  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
+  }
   /* USER CODE END 3 */
 }
 
@@ -217,7 +179,6 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
 
 /* USER CODE END 4 */
 

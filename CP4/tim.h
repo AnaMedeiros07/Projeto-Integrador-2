@@ -43,7 +43,7 @@ void MX_TIM2_Init(void);
 void MX_TIM3_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-void Timer_Configuration(long int autoreload, int prescaler);
+void Timer_Configuration(int autorreload, int prescaler);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

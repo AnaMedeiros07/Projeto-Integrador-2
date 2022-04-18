@@ -207,8 +207,9 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 }
 
 /* USER CODE BEGIN 1 */
-void Timer_Configuration(long int autoreload, int prescaler){
+void Timer_Configuration(int autorreload, int prescaler)
+{
 	htim3.Instance->PSC = prescaler;
-	htim3.Instance->ARR = autoreload;
+	htim3.Instance->ARR = autorreload;
 }
 /* USER CODE END 1 */

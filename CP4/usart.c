@@ -21,24 +21,31 @@
 #include "usart.h"
 
 /* USER CODE BEGIN 0 */
-#include "stdio.h"
-#include "stdlib.h"
-#include "stdbool.h"
+/*_____Includes______*/
 #include "string.h"
-#define esc 0x1B
-#define bckspc 0x08
-#define $ 0x24
-	uint8_t UART3Rx_Buffer[256]; //guarda as mensagens para a main;
-	uint8_t Rx_Buffer[256];
-    uint8_t	Rx_Buffer_Old[256];
-	char UART3Tx_Buffer[256];
-	uint8_t Tx_Buffer[256];
-	int receive_flag= 0;
-	int tamanho;
-	uint8_t index_ = 0;
-	volatile uint8_t UART3Rx_index=0;// index do ultimo caracter
-	int transmite_flag =0;
+#include "stdio.h"
+/*___________________*/
 
+/*_____Defines_______*/
+#define esc       0x1B
+#define bckspc    0x08
+#define $         0x24
+/*___________________*/
+
+/*_____Variables_____*/
+uint8_t UART3Rx_Buffer[256];
+uint8_t Rx_Buffer[256];
+uint8_t Rx_Buffer_Old[256];
+uint8_t Tx_Buffer[256];
+uint8_t index_ = 0;
+volatile uint8_t UART3Rx_index = 0;
+
+_Bool receive_flag;
+int tamanho;
+_Bool transmite_flag;
+
+char UART3Tx_Buffer[256];
+/*___________________*/
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart3;
@@ -151,7 +158,7 @@ void init_UART3()
 		transmite_flag=0;
 	}
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart) // função de interrupção da uart que guarda os comando no Rx_Buffer
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 {
     if(huart->Instance == USART3){
         if(receive_flag == 0){
@@ -161,22 +168,20 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart) // função de interrup�
                 UART3Rx_index &= ~(1<<7);
                 HAL_UART_Receive_IT(&huart3, &UART3Rx_Buffer[UART3Rx_index], 1);
             }
-            else if(UART3Rx_Buffer[UART3Rx_index] == bckspc) // limpa do array o caracter recebido
+            else if(UART3Rx_Buffer[UART3Rx_index] == bckspc)
             {
             	Rx_Buffer[--UART3Rx_index]='\0';
                 HAL_UART_Receive_IT(&huart3, &UART3Rx_Buffer[UART3Rx_index], 1);
 
             }
-            else if(UART3Rx_Buffer[UART3Rx_index] == $) // limpa do array todos os caracteres recebidos e
-            											// repete o último comando válido
+            else if(UART3Rx_Buffer[UART3Rx_index] == $)
             {
             	Limpar_Tx_Buffer();
             	Limpar_Rx_Buffer();
-            	strcpy(Rx_Buffer,Rx_Buffer_Old);		// copiamos do Rx_Buffer_Old(guarda todos os comados válidos)
-            											// para o Rx_Buffer
+            	strcpy(Rx_Buffer,Rx_Buffer_Old);
                 HAL_UART_Receive_IT(&huart3, &UART3Rx_Buffer[UART3Rx_index], 1);
             }
-            else if(UART3Rx_Buffer[UART3Rx_index] == esc) // limpa do array todos os caracteres recebidos
+            else if(UART3Rx_Buffer[UART3Rx_index] == esc)
             {
             	Limpar_Tx_Buffer();
             	Limpar_Rx_Buffer();
@@ -208,7 +213,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 	}
 }
 
-void Write_Tx_Buffer(char *pdata, int flag){ //Escreve no Tx_Buffer os caracteres a enviar para o terminal
+void Write_Tx_Buffer(char *pdata, int flag){
 	int local_index = 0;
 	while(pdata[local_index] != '\0'){
 		Tx_Buffer[tamanho] = pdata[local_index];
@@ -228,32 +233,34 @@ void Tx_Transmition(){
 		HAL_UART_Transmit_IT(&huart3,&Tx_Buffer[index_], 1);
 		index_++;
 	}
+	else
+		transmite_flag = 0;
 }
 
-void Limpar_Tx_Buffer(){ // Limpa o array Tx_Buffer
-	int local_index = 0;
-	tamanho = 0;
-	index_ = 0;
-	while(Tx_Buffer[local_index] != '\0'){
-		Tx_Buffer[local_index++] = '\0';
-	}
+void Limpar_Tx_Buffer(){
+    int local_index = 0,lenght=strlen(Tx_Buffer);
+    tamanho = 0;
+    index_ = 0;
+    while(local_index != lenght){
+        Tx_Buffer[local_index++] = '\0';
+    }
 }
 
-void Limpar_Rx_Buffer(){ // Limpa o array Rx_Buffer
-	int local_index=0;
-	while(Rx_Buffer[local_index] != '\0'){
-		Rx_Buffer[local_index++] = '\0';
-	}
+void Limpar_Rx_Buffer(){
+    int local_index=0,lenght=strlen(Rx_Buffer);
+    while(local_index != lenght){
+        Rx_Buffer[local_index++] = '\0';
+    }
 }
-void Limpar_Rx_Buffer_Old() // Limpa o array Rx_Buffer_Old
+void Limpar_Rx_Buffer_Old()
 {
-	int local_index=0;
-		while(Rx_Buffer_Old[local_index] != '\0'){
-				Rx_Buffer_Old[local_index++] = '\0';
-			}
+    int local_index=0,lenght=strlen(Rx_Buffer_Old);
+        while(local_index != lenght){
+                Rx_Buffer_Old[local_index++] = '\0';
+            }
 }
 
-void Data_Reset(){ // Atualiza Rx_Buffer_Old(guarda os comandos antigos) caso o comando seja válido
+void Data_Reset(){
     Limpar_Rx_Buffer_Old();
     strcpy(Rx_Buffer_Old,Rx_Buffer);
 }
