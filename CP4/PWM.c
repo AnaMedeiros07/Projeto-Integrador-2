@@ -1,13 +1,17 @@
 /*
  * PWM.c
  *
- *  Created on: 24/03/2022
+ *  Created on: Apr 19, 2022
  *      Author: Ines
  */
 
+/*_________Includes__________*/
 #include "PWM.h"
-#include "Control.h"
+/*___________________________*/
+
+/*_________Variable__________*/
 int duty_cycle;
+/*___________________________*/
 
 void Init_PWM_Control (){
 	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_1);
@@ -40,16 +44,6 @@ _Bool Normalized_Tension(uint8_t *buffer1){
 	}
 
 	return return_flag;
-}
-
-void Increment_Duty(){
-	duty_cycle +=5;
-	Change_Duty();
-}
-
-void Decrement_Duty(){
-	duty_cycle -=5;
-	Change_Duty();
 }
 
 _Bool Change_Duty(){

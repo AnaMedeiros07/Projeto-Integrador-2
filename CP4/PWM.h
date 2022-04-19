@@ -1,7 +1,7 @@
 /*
  * PWM.h
  *
- *  Created on: 24/03/2022
+ *  Created on: Apr 19, 2022
  *      Author: Ines
  */
 
@@ -12,17 +12,24 @@
 extern "C" {
 #endif
 
-#include "main.h"
+/*_________Includes__________*/
 #include "Comandos.h"
 #include "usart.h"
 #include "tim.h"
 #include "string.h"
+#include "Control.h"
+/*___________________________*/
 
+/*_________Functions_________*/
 void Init_PWM_Control();
 void DeInit_PWM_Control ();
 _Bool Normalized_Tension(uint8_t *buffer1);
-void Increment_Duty();
-void Decrement_Duty();
 _Bool Change_Duty();
+/*___________________________*/
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* INC_PWM_H_ */

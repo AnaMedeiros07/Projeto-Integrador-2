@@ -1,7 +1,7 @@
 /*
  * Control.h
  *
- *  Created on: Apr 15, 2022
+ *  Created on: Apr 18, 2022
  *      Author: Ines
  */
 
@@ -9,46 +9,44 @@
 #define INC_CONTROL_H_
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"{
 #endif
 
-/* INCLUDES */
+/*_________Includes__________*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "tim.h"
-#include "usart.h"
-#include "main.h"
+#include "Comandos.h"
 #include "gpio.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
 #include "math.h"
-/*__________*/
+/*___________________________*/
 
 /* DEFINES */
 #define Manual 0
 #define Automatic 1
 /*_________*/
 
-/* VARIÁVEIS DESTE MÓDULO */
-#define invalid 1
-_Bool Mode;
-extern _Bool Sample_K;
-extern int K_value;
-extern float period;
-extern _Bool stop;
-extern _Bool start;
+/*_________Variable__________*/
 extern _Bool Output;
-/*________________________*/
+/*___________________________*/
 
-/* FUNÇÕES DESTE MÓDULO */
-_Bool Sampling_Time(uint8_t*);
-int Parsing(uint8_t *message_to_parse, char string_array[6][6]);
+/*_________Functions_________*/
+_Bool Sampling_Time(uint8_t *buffer);
+_Bool Operation_Mode(uint8_t* buffer);
 void clean_string_array(char string_array[6][6]);
-_Bool Operation_Mode(uint8_t *buffer);
-void Reset();
+int Parsing(uint8_t *message_to_parse, char string_array[6][6]);
 int Units_Processement(char string_array[6][6], float *period);
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim);
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2);
+void Reset();
 _Bool Get_Constants(uint8_t *buffer1);
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*);
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef*);
-/*______________________*/
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1);
+
+/*___________________________*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* INC_CONTROL_H_ */

@@ -47,7 +47,7 @@ void MX_TIM4_Init(void);
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 /* USER CODE BEGIN Prototypes */
-void Timer_Configuration(long int autoreload, int prescaler);
+void Timer_Configuration(int autorreload, int prescaler);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
