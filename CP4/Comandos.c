@@ -117,14 +117,14 @@ _Bool Start(uint8_t *buffer)
 			Sample_K = 0;
 			prompt_flag = 0;
 			HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
-			HAL_TIM_Base_Start_IT(&htim3);
+			HAL_TIM_Base_Start_IT(&htim6);
 			break;
 		case 1:
 			K_value = atoi(string_array[1]);
 			Sample_K = 1;
 			prompt_flag = 0;
 			HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
-			HAL_TIM_Base_Start_IT(&htim3);
+			HAL_TIM_Base_Start_IT(&htim6);
 			break;
 		default:
 			Write_Tx_Buffer("Dados inseridos invalidos!! Escreva novamente...", 0);
@@ -138,7 +138,7 @@ _Bool Start(uint8_t *buffer)
 _Bool Stop(){
 
 	HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_1);
-	HAL_TIM_Base_Stop_IT(&htim3);
+	HAL_TIM_Base_Stop_IT(&htim6);
 	stop = 1;
 
      return 1;

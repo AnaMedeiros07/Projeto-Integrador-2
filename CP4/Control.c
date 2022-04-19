@@ -257,16 +257,16 @@ _Bool Get_Constants(uint8_t *buffer1){
 	}
 	return return_flag;
 }
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){  // ISR_H
+/*void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){  // ISR_H
 	if(htim2->Channel == HAL_TIM_ACTIVE_CHANNEL_1){
 		++count_pulses;
 	}
-}
+}*/
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
-	if(htim == &htim3){// o que é o y e o u? lê-mos do adc e mandamos para o dac?
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
+{
 		Output=1;
-		y = 1.1;
+		y = HAL_ADC_GetValue(hadc1);
 		e=yr-y;
 		if (Mode == Automatic)
 		{
@@ -287,10 +287,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
 				u=U_sat_b;
 				sum_e=sum_e_bkp;
 			}
-			//output=u;
+			if(HAL_DAC_Start(&hdac, DAC1_CHANNEL_1)== HAL_OK)
+			  {
+				 HAL_DAC_SetValue(&hdac, DAC1_CHANNEL_1,DAC_ALIGN_12B_R,(u*4095)/3.3);
+			  }
 		else
+		{
 			y_ant=y;
 			e_ant=e;
 		}
 	}
 }
+
