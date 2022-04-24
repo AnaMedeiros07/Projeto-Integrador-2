@@ -29,6 +29,9 @@ extern "C"{
 
 /*_________Variable__________*/
 extern _Bool Output;
+extern _Bool Mode;
+extern int index_output_wave;
+extern float output_wave[51];
 /*___________________________*/
 
 /*_________Functions_________*/
@@ -37,11 +40,11 @@ _Bool Operation_Mode(uint8_t* buffer);
 void clean_string_array(char string_array[6][6]);
 int Parsing(uint8_t *message_to_parse, char string_array[6][6]);
 int Units_Processement(char string_array[6][6], float *period);
+_Bool Reference_Position(uint8_t *buffer1);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim);
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2);
 void Reset();
 _Bool Get_Constants(uint8_t *buffer1);
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1);
 
 /*___________________________*/
 

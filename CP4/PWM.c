@@ -33,14 +33,14 @@ _Bool Normalized_Tension(uint8_t *buffer1){
 
 	if(row_number != 1){
 		Write_Tx_Buffer("Dados inseridos invalidos!! Escreva novamente...", 0);
-		return invalid;
+		return 1;
 	}
 
 	duty_cycle = atoi(string_array[row_number]);
 	Validation = Change_Duty();
 	if(Validation == 0){
 		Write_Tx_Buffer("Valores fora dos limites!!", 0);
-		return_flag = invalid;
+		return_flag = 1;
 	}
 
 	return return_flag;
@@ -55,7 +55,7 @@ _Bool Change_Duty(){
 		Direction = Anti_Clock;
 		float duty = (float)(duty_cycle*(-1))/100;
 		htim4.Instance->CCR1 = duty*(htim4.Instance->ARR);
-		return_flag = Valid;
+		return_flag = 1;
 	}
 	else if((duty_cycle >= 0) && (duty_cycle <= 100)){
 		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, 0);
@@ -63,7 +63,7 @@ _Bool Change_Duty(){
 		Direction = Clock;
 		float duty = (float)duty_cycle/100;
 		htim4.Instance->CCR1 = duty*(htim4.Instance->ARR);
-		return_flag = Valid;
+		return_flag = 1;
 	}
 	else{
 		return_flag = 0;

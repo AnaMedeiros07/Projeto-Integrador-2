@@ -12,14 +12,15 @@
 /*__________________________*/
 
 /*________Variables_________*/
+#define U_sat_a 1
+#define U_sat_b -1
 _Bool Output;
+float yr = 1.0;
 int pulses = 0;
-int KP=0;
-int KD=0;
-int KI=0;
+float KP=0;
+float KD=0;
+float KI=0;
 float a=0;
-float U_sat_a=0;
-float U_sat_b=0;
 float y=0.0;
 float y_ant=0.0;
 float e=0.0;
@@ -32,8 +33,16 @@ float u_d_ant =0.0;
 float Kd_h=0.0;
 float Ki_h=0.0;
 float Kp_h=0.0;
+float period=0;
+int position=0;
 float Velocity_Buffer[256];
 int index_velocity=0;
+float square_wave[51] ={0.0,0.0,0.0,0.0,0.0,0.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,2.0,2.0,2.0,2.0};
+float triangle_wave[51]={1.0,1.2,1.4,1.6,1.8,2.0,1.8,1.6,1.4,1.2,1.0,0.8,0.6,0.4,0.2,0.0,0.2,0.4,0.6,0.8,1.0, 1.2,1.4,1.6,1.8,2.0,1.8,1.6,1.4,1.2,1.0,0.8,0.6,0.4,0.2,0.0,0.2,0.4,0.6,0.8,1.0, 1.2,1.4,1.6,1.8,2.0,1.8,1.6,1.4,1.2,1.0};
+float output_wave[51]={0.0};
+int index_output_wave=0;
+_Bool Mode =0;
+
 /*__________________________*/
 
 void clean_string_array(char string_array[6][6]){
@@ -135,8 +144,7 @@ _Bool Sampling_Time(uint8_t *buffer){
 
 	/*____Function_Variables____*/
 	int prescaler=0, row_number = 0;
-	long int time_6_clock=0,autoreload=0;
-	float period=0;
+	long int time_3_clock=0,autoreload=0;
 	char string_array[6][6];
 	/*__________________________*/
 
@@ -153,13 +161,10 @@ _Bool Sampling_Time(uint8_t *buffer){
 	if(Units_Processement(string_array, &period))
 		return 1;
 
-	 Kp_h=(float)(KP/period);
-	 Ki_h=(float)(KI/period);
-	 Kd_h=(float)(KD/period);
 
 	if(period > 0){
-		time_6_clock = (65536/(period));
-		prescaler = ((108000000/time_6_clock));
+		time_3_clock = (65536/(period));
+		prescaler = ((108000000/time_3_clock));
 		autoreload=((108000000*period)/(prescaler+1))-1;
 
 		if(autoreload > 65535)
@@ -216,7 +221,6 @@ void Reset()
 }
 
 _Bool Get_Constants(uint8_t *buffer1){
-	_Bool return_flag, Validation;
 	int row_number = 0;
 	char string_array[6][6];
 
@@ -225,116 +229,75 @@ _Bool Get_Constants(uint8_t *buffer1){
 
 	if(row_number != 1){
 		Write_Tx_Buffer("Dados inseridos invalidos!! Escreva novamente...", 0);
-		return invalid;
+		return 1;
 	}
 	switch(buffer1[1]){
 			case 'D':
 			case 'd':
-				KD = atoi(string_array[row_number]);
+				KD = atof(string_array[row_number]);
+				if(KD>200 || KD<0)
+				{
+					KD=0;
+					Write_Tx_Buffer("Dados inseridos invalidos!! KD >200 ou KD <0, escreva novamente ", 0);
+				}
 			break;
 			case 'P':
 			case 'p':
-				KP = atoi(string_array[row_number]);
+				KP = atof(string_array[row_number]);
+				if(KP>200 || KP<0)
+				{
+					KP=0;
+					Write_Tx_Buffer("Dados inseridos invalidos!! KP >200 ou KP <0, escreva novamente ", 0);
+				}
 			break;
 			case 'I':
 			case 'i':
-				KI = atoi(string_array[row_number]);
+				KI = atof(string_array[row_number]);
+				if(KI>200 || KI<0)
+				{
+					KI=0;
+					Write_Tx_Buffer("Dados inseridos invalidos!! KI >200 ou KI <0, escreva novamente ", 0);
+				}
 			break;
 			default: break;
 	}
-	switch(buffer1[1]){
+	switch(buffer1[0]){
 			case 'a':
 			case 'A':
 				a = atof(string_array[row_number]);
 			break;
 			default: break;
 	}
-	switch(buffer1[2]){
-			case 'a':
-			case 'A':
-				U_sat_a = atof(string_array[row_number]);
-			break;
-			case 'b':
-			case 'B':
-				U_sat_b = atof(string_array[row_number]);
-			break;
-			default: break;
+	return 1;
+}
+_Bool Reference_Position(uint8_t *buffer1){
+	int row_number = 0;
+	char string_array[6][6];
+
+	clean_string_array(string_array);
+	row_number = Parsing(buffer1, string_array);
+
+	if(row_number != 1){
+		Write_Tx_Buffer("Dados inseridos invalidos!! Escreva novamente...", 0);
+		return 1;
 	}
-	return return_flag;
+
+	position = atoi(string_array[row_number]);
+	if(position>720 || position< 0){
+		Write_Tx_Buffer("Valores fora dos limites!! Posicao > 720 ou <0", 0);
+	}
+
+	return 1;
 }
 
-/*void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
 	if(htim == &htim3){
-		int error = 0, sum_e = 0, e_ant = 0;
-		float u_d = 0.0;
-        HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
-		if((Sample_K == 1) && (K_value != 0))
-		    {
-		        K_value--;
-		        error = reference - pulses;
-				if(aut){
-					sum_e_bkp = sum_e;
-					sum_e += e_ant;
-					u_d = kd_h*(pulses-pulses_ant)+ a*u_d_ant;
-					u = Kp_h*error + Ki_h*sum_e - u_d;
-					e_ant = e;
-					pulses_ant = pulses;
-					u_d_ant = u_d;
-					if(u > U_sat_a){
-						u = U_sat_a;
-						sum_e = sum_e_bkp;
-					}
-					else if(u < U_sat_b){
-						u = U_sat_b;
-						sum_e = sum_e_bkp;
-				//madar para fora;
-					}
-					else{
-						e_ant = error;
-						pulses_ant = pulses;
-					}
-				Output=1;
 
-
-		    }
-		    else if((Sample_K == 1) && (K_value == 0))
-		        Stop();
-		    else
-		    {
-		    	error = reference - pulses;
-		    	if(aut){
-		    		sum_e_bkp = sum_e;
-		    		sum_e += e_ant;
-		    		u_d = kd_h*(pulses-pulses_ant)+ a*u_d_ant;
-		    		u = Kp_h*error + Ki_h*sum_e - u_d;
-		    		e_ant = e;
-		    		pulses_ant = pulses;
-		    		u_d_ant = u_d;
-		    		if(u > U_sat_a){
-		    			u = U_sat_a;
-		    			sum_e = sum_e_bkp;
-		    		}
-		    		else if(u < U_sat_b){
-		    			u = U_sat_b;
-		    			sum_e = sum_e_bkp;
-		    	//madar para fora;
-		    		}
-		    		else{
-		    			e_ant = error;
-		    			pulses_ant = pulses;
-		    		}
-		    	}
-
-
-			}
-		Output=1;
-	}
-}*/
-
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
-{
-		Output=1;
-		y = HAL_ADC_GetValue(hadc1);
+	 Output =1;
+	 Kp_h=KP;
+	 Ki_h=(float)(KI*period);
+	 Kd_h=(float)((KD*(1-a))/period);
+		y = triangle_wave[index_output_wave];
 		e=yr-y;
 		if (Mode == Automatic)
 		{
@@ -355,20 +318,22 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
 				u=U_sat_b;
 				sum_e=sum_e_bkp;
 			}
-			if(HAL_DAC_Start(&hdac, DAC1_CHANNEL_1)== HAL_OK)
-			  {
-				 HAL_DAC_SetValue(&hdac, DAC1_CHANNEL_1,DAC_ALIGN_12B_R,(u*4095)/3.3);
-			  }
+			output_wave[index_output_wave]=u;
+			++index_output_wave;
+		}
 		else
 		{
 			y_ant=y;
 			e_ant=e;
 		}
 	}
-}
+		if(index_output_wave==51)
+			index_output_wave=0;
+	}
 
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){  // ISR_H
+
+/*void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){  // ISR_H
 	if(htim2->Channel == HAL_TIM_ACTIVE_CHANNEL_1){
 		pulses++;
 	}
-}
+}*/

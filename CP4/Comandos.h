@@ -17,6 +17,7 @@ extern "C"{
 #include "usart.h"
 #include "Control.h"
 #include "PWM.h"
+
 /*___________________________*/
 
 /*__________Defines__________*/
@@ -37,6 +38,7 @@ extern int K_value;
 
 /*_________Functions_________*/
 _Bool Check_Comand(uint8_t *buffer);
+_Bool Enable(uint8_t *buffer1);
 void Print();
 _Bool Start(uint8_t* buffer);
 _Bool Stop();

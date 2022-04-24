@@ -87,14 +87,15 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
-  MX_TIM3_Init();
-  MX_TIM2_Init();
   MX_TIM4_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-
+int counter_array=-1;
+int index_total=0;
 init_UART3();
 receive_flag = 0;
 prompt_flag = 1;
+
 
   /* USER CODE END 2 */
 
@@ -121,6 +122,33 @@ prompt_flag = 1;
 			  Data_Reset();
 		  Limpar_Rx_Buffer();
 	  }
+	  if(Output==1)
+	  	  	  {
+	  	  		  char result[10];
+	  	  		  counter_array++;
+	  	  		  if(counter_array==51)
+	  	  			  counter_array=0;
+	  	  		  Write_Tx_Buffer("Velocity = ", 2);
+	  	  		  snprintf(result, 10, "%f", output_wave[counter_array]);
+	  	  		  Write_Tx_Buffer(result,0);
+	  	  		  transmite_flag=1;
+	  			  Print();
+	  			  index_total++;
+	  			  Output=0;
+	  	  	  }
+
+	  	  if(((counter_array > index_output_wave-1) ||(counter_array < index_output_wave-1)) && stop == 1 && start == 1){
+	  	  		  Output = 1;
+	  	  	  }
+	  	  	  else if(stop == 1){
+	  	  		  start = 0;
+	  	  		  Output = 0;
+	  	  		  index_total = 0;
+	  	  		  index_output_wave=0;
+	  	  		  counter_array = -1;
+	  	  		  prompt_flag = 1;
+	  	  		  stop = 0;
+	  	  	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
