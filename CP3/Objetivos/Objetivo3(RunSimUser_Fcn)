@@ -1,0 +1,43 @@
+//inputs
+sensor_A = in[0];					// Ler sensor_A do Encoder
+sensor_B = in[1];					// Ler sensor_B do Encoder
+velocidade_ref = in[2];				// Ler velocidade de referência
+kp 	= in[3];						// Ler valor do ganho Kp
+ki	= in[4];						// Ler valor do ganho Ki
+int multi = 1000;
+float tempo = t*multi;
+
+
+flag_sentido = sentido(sensor_A, sensor_B);			// Função que determina o sentido de rotação
+FW = (flag_sentido == 1)? 1: 0;
+
+if(fmod(tempo, 2) == 0){
+	speed_medio = encoder_Speed(sensor_A, flag_sentido, 0.002);	// Função que determina a velocidade
+
+	if( t<0.5){
+		DC = 55;
+	}
+	else{
+		if( aux_delay_control > 5 ){
+       			velocidade_control(velocidade_ref, speed_medio  );            // determinar valor de DC
+      		  	aux_delay_control=0;
+ 		   }
+ 		    aux_delay_control++;
+	}
+}
+
+//DC=75;			//malha aberta
+//FW=1;
+
+
+
+out[0] = DC;
+out[1] = FW;
+out[2]= Enable;
+out[3]= count_sensor;
+out[4]= speed_rpm;
+
+out[6] = speed_medio ;
+//out[7]= error;
+out[8]=flag_sentido;
+//out[9]= aux_flag_sensor_null;
