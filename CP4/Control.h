@@ -17,6 +17,7 @@ extern "C"{
 #include <stdlib.h>
 #include <string.h>
 #include "tim.h"
+#include "math.h"
 #include "Comandos.h"
 #include "gpio.h"
 #include "math.h"
@@ -32,6 +33,9 @@ extern _Bool Output;
 extern _Bool Mode;
 extern int index_output_wave;
 extern float output_wave[51];
+extern float Velocity_Buffer[256];
+extern float Position_Buffer[256];
+extern int index_count;
 /*___________________________*/
 
 /*_________Functions_________*/
@@ -44,6 +48,10 @@ _Bool Reference_Position(uint8_t *buffer1);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim);
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2);
 void Reset();
+void direction();
+void Control();
+void Velocity_Mesure();
+void Position_Mesure();
 _Bool Get_Constants(uint8_t *buffer1);
 
 /*___________________________*/

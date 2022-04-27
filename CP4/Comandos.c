@@ -112,6 +112,7 @@ void Print(){
 		while(transmite_flag == 1){}
 	}
 }
+
 _Bool Enable(uint8_t *buffer1){
 	_Bool return_flag;
 	int row_number = 0;
@@ -128,7 +129,7 @@ _Bool Enable(uint8_t *buffer1){
 	switch(string_array[row_number][0]){
 		case '0':
 			if(string_array[row_number][1] == '\0'){
-				(Mode == Automatic)? DeInit_PWM_Control(): 0;
+				(Mode == Manual)? DeInit_PWM_Control(): 0;
 				Reset();
 				return_flag = 1;
 			}
@@ -159,12 +160,8 @@ _Bool Invalid(){
 
 _Bool Stop(){
 
-	//HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_1);
-	HAL_TIM_Base_Stop(&htim3);
+	HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_3);
 	HAL_TIM_Base_Stop_IT(&htim3);
-	//HAL_TIM_Base_Stop_IT(&htim6);
-
-
 	stop = 1;
 
 	return 1;
@@ -185,24 +182,17 @@ _Bool Start(uint8_t* buffer){
 		case 0:
 			Sample_K = 0;
 			prompt_flag = 0;
-			//HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
-			//HAL_TIM_Base_Start(&htim2);
 			HAL_TIM_Base_Start_IT(&htim3);
-			HAL_TIM_Base_Start(&htim3);
-
-			//HAL_TIM_Base_Start_IT(&htim3);
+			HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_3);
+			HAL_TIM_Base_Start(&htim2);
 			break;
 		case 1:
 			K_value = atoi(string_array[1]);
 			Sample_K = 1;
 			prompt_flag = 0;
-			//HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
-			//HAL_TIM_Base_Start(&htim2);
 			HAL_TIM_Base_Start_IT(&htim3);
-			HAL_TIM_Base_Start(&htim3);
-
-			//HAL_TIM_Base_Start_IT(&htim3);
-			break;
+			HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_3);
+			HAL_TIM_Base_Start(&htim2);
 		default:
 			Write_Tx_Buffer("Dados inseridos invalidos!! Escreva novamente...", 0);
 			break;

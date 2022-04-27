@@ -12,9 +12,12 @@
 /*__________________________*/
 
 /*________Variables_________*/
-#define U_sat_a 1
+#define U_sat_a  1
 #define U_sat_b -1
+
 _Bool Output;
+_Bool Mode = 0;
+
 float yr = 1.0;
 int pulses = 0;
 float KP=0;
@@ -34,14 +37,12 @@ float Kd_h=0.0;
 float Ki_h=0.0;
 float Kp_h=0.0;
 float period=0;
-int position=0;
-float Velocity_Buffer[256];
-int index_velocity=0;
-float square_wave[51] ={0.0,0.0,0.0,0.0,0.0,0.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,2.0,2.0,2.0,2.0};
-float triangle_wave[51]={1.0,1.2,1.4,1.6,1.8,2.0,1.8,1.6,1.4,1.2,1.0,0.8,0.6,0.4,0.2,0.0,0.2,0.4,0.6,0.8,1.0, 1.2,1.4,1.6,1.8,2.0,1.8,1.6,1.4,1.2,1.0,0.8,0.6,0.4,0.2,0.0,0.2,0.4,0.6,0.8,1.0, 1.2,1.4,1.6,1.8,2.0,1.8,1.6,1.4,1.2,1.0};
-float output_wave[51]={0.0};
-int index_output_wave=0;
-_Bool Mode =0;
+float ref_position=0;
+float Velocity_Buffer[256] = {0.0};
+float Position_Buffer[256]={0.0};
+
+int index_output_wave = 0;
+int index_count = 0;
 
 /*__________________________*/
 
@@ -198,6 +199,12 @@ _Bool Operation_Mode(uint8_t* buffer){
 	switch(string_array[row_number][0]){
 		case '0':
 			Mode = Manual;
+			sum_e=0;
+			u_d=0;
+			u=0;
+			sum_e_bkp=0;
+			e_ant=0;
+			y_ant=0;
 			return_variable = 1;
 			break;
 		case '1':
@@ -213,11 +220,22 @@ _Bool Operation_Mode(uint8_t* buffer){
 void Reset()
 {
 	int index=0;
+	sum_e=0;
+	u_d=0;
+	u=0;
+	sum_e_bkp=0;
+	e_ant=0;
+	y_ant=0;
+	index_count=0;
+
 	for(index = 0; index <=255;index++)
 	{
 		Velocity_Buffer[index]=0.0;
 	}
-	index_velocity=0;
+	for(index = 0; index <=255;index++)
+	{
+		Position_Buffer[index]=0.0;
+	}
 }
 
 _Bool Get_Constants(uint8_t *buffer1){
@@ -270,6 +288,7 @@ _Bool Get_Constants(uint8_t *buffer1){
 	}
 	return 1;
 }
+
 _Bool Reference_Position(uint8_t *buffer1){
 	int row_number = 0;
 	char string_array[6][6];
@@ -282,32 +301,30 @@ _Bool Reference_Position(uint8_t *buffer1){
 		return 1;
 	}
 
-	position = atoi(string_array[row_number]);
-	if(position>720 || position< 0){
+	ref_position  = atoi(string_array[row_number]);
+	if(ref_position >= 720 || ref_position <= 0){
 		Write_Tx_Buffer("Valores fora dos limites!! Posicao > 720 ou <0", 0);
 	}
 
 	return 1;
 }
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
-	if(htim == &htim3){
+void Control()
+{
 
-	 Output =1;
 	 Kp_h=KP;
 	 Ki_h=(float)(KI*period);
 	 Kd_h=(float)((KD*(1-a))/period);
-		y = triangle_wave[index_output_wave];
-		e=yr-y;
-		if (Mode == Automatic)
-		{
-			sum_e_bkp=sum_e;
-			sum_e=sum_e+e_ant;
-			u_d=Kd_h*(y-y_ant)+a*u_d_ant;
-			u=Kp_h*e+Ki_h*sum_e-u_d;
-			e_ant=e;
-			y_ant=y;
-			u_d_ant=u_d;
+	 e=yr-y;
+			if (Mode == Automatic)
+			{
+				sum_e_bkp=sum_e;
+				sum_e=sum_e+e_ant;
+				u_d=Kd_h*(y-y_ant)+a*u_d_ant;
+				u=Kp_h*e+Ki_h*sum_e-u_d;
+				e_ant=e;
+				y_ant=y;
+				u_d_ant=u_d;
 			if(u>U_sat_a)
 			{
 				u=U_sat_a;
@@ -318,22 +335,70 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
 				u=U_sat_b;
 				sum_e=sum_e_bkp;
 			}
-			output_wave[index_output_wave]=u;
-			++index_output_wave;
+				output_wave[index_output_wave]=u;
+				++index_output_wave;
+			}
+			else
+			{
+				y_ant=y;
+				e_ant=e;
+				if(index_output_wave==51)
+					index_output_wave=0;
+			}
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
+	if(htim == &htim3){
+		float position=0;
+		float Velocity=0;
+		if((Sample_K == 1) && (K_value != 0))
+		{
+			K_value--;
+			position=(pulses*960)/2*M_PI;
+			Velocity= (float)(2*M_PI/960)*pulses*(float)(1/period);
+
+			Position_Buffer[index_count]=position*(float)Direction;
+			Velocity_Buffer[index_count]=Velocity*(float)Direction;
+
+			++index_count;
+			index_count &= ~(1<<7);
+			pulses = 0;
+			Output = 1;
+
 		}
+		else if((Sample_K == 1) && (K_value == 0))
+			Stop();
 		else
 		{
-			y_ant=y;
-			e_ant=e;
+			position=(pulses*960)/2*M_PI;
+			Velocity= (float)(2*M_PI/960)*pulses*(float)(1/period);
+
+			Position_Buffer[index_count]=position*(float)Direction;
+			Velocity_Buffer[index_count]=Velocity*(float)Direction;
+			++index_count;
+			index_count&= ~(1<<7);
+			pulses = 0;
+			Output = 1;
 		}
-	}
-		if(index_output_wave==51)
-			index_output_wave=0;
-	}
 
+	}
+}
 
-/*void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){  // ISR_H
-	if(htim2->Channel == HAL_TIM_ACTIVE_CHANNEL_1){
+void direction() //PA6 = sensor B
+{
+	if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6)==0)
+	{
+		Direction=Clock;
+	}
+	else
+		Direction=Anti_Clock;
+}
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){  // ISR_H
+	if(htim2->Channel == HAL_TIM_ACTIVE_CHANNEL_3){
+		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
 		pulses++;
+		direction();
+
 	}
-}*/
+}

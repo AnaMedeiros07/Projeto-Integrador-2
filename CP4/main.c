@@ -71,7 +71,8 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -89,7 +90,15 @@ int main(void)
   MX_USART3_UART_Init();
   MX_TIM4_Init();
   MX_TIM3_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
+  long int period = 65535/(0.5);
+  long int prescaler = (108000000/period);
+  long int autoreload = ((108000000*0.5)/(prescaler+1))-1;
+  htim4.Instance->PSC = prescaler;
+  htim4.Instance->ARR = autoreload;
+  htim4.Instance->CCR1 = 0.5*(htim4.Instance->ARR);
+
 int counter_array=-1;
 int index_total=0;
 init_UART3();
@@ -113,42 +122,46 @@ prompt_flag = 1;
 	  if(receive_flag == 1){
 		  prompt_flag = 1;
 		  Write_Tx_Buffer(Rx_Buffer, 0);
-		  transmite_flag = 0;
+		  transmite_flag = 1;
 		  Print();
 		  receive_flag = 0;
 		  transmite_flag = Check_Comand(Rx_Buffer);
 		  Print();
 		  if(valid == 1)
 			  Data_Reset();
-		  Limpar_Rx_Buffer();
+		  else
+			  Limpar_Rx_Buffer();
 	  }
-	  if(Output==1)
-	  	  	  {
-	  	  		  char result[10];
-	  	  		  counter_array++;
-	  	  		  if(counter_array==51)
-	  	  			  counter_array=0;
-	  	  		  Write_Tx_Buffer("Velocity = ", 2);
-	  	  		  snprintf(result, 10, "%f", output_wave[counter_array]);
-	  	  		  Write_Tx_Buffer(result,0);
-	  	  		  transmite_flag=1;
-	  			  Print();
-	  			  index_total++;
-	  			  Output=0;
-	  	  	  }
 
-	  	  if(((counter_array > index_output_wave-1) ||(counter_array < index_output_wave-1)) && stop == 1 && start == 1){
+	  if(Output==1)
+	  {
+		  char result[10];
+		  counter_array++;
+		  counter_array &= ~(1<<7);
+		  Write_Tx_Buffer("Velocity = ", 2);
+		  snprintf(result, 10, "%f", Velocity_Buffer[counter_array]);
+		  Write_Tx_Buffer(result,0);
+		  Write_Tx_Buffer("Position = ", 2);
+		  snprintf(result, 10, "%f", Position_Buffer[counter_array]);
+		  Write_Tx_Buffer(result,0);
+		  transmite_flag=1;
+		  Print();
+		  index_total++;
+		  Output=0;
+	  }
+
+	  	  if(((counter_array > index_count-1) ||(counter_array < index_count -1)) && stop == 1 && start == 1){
 	  	  		  Output = 1;
-	  	  	  }
-	  	  	  else if(stop == 1){
-	  	  		  start = 0;
-	  	  		  Output = 0;
-	  	  		  index_total = 0;
-	  	  		  index_output_wave=0;
-	  	  		  counter_array = -1;
-	  	  		  prompt_flag = 1;
-	  	  		  stop = 0;
-	  	  	  }
+		  }
+		  else if(stop == 1){
+			  start = 0;
+			  Output = 0;
+			  index_total = 0;
+			  index_count=0;
+			  counter_array = -1;
+			  prompt_flag = 1;
+			  stop = 0;
+		  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -242,4 +255,3 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
