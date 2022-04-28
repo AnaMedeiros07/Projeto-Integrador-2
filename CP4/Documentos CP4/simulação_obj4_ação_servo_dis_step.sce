@@ -4,8 +4,7 @@ A	=	[-Bf/J-Km^2/(R*J)	0	;1	0]; B	=	[Km*Kw/(R*J)	1/J;	0	0];
 Bu	=	B(:,1)	//B	column	corresponding	to	command	
 C	=	[1	0;	0	1];		
 sys_c=syslin('c',A,B,C);
-tf=5													//Final	instant	of	simulaCon	
-x0=[1	0]'				//IniCal	state	
+tf=26													//Final	instant	of	simulaCon	
 A_dis=A;B_dis=B;Bu_dis=Bu;	C_dis=C	
 sysdis_c=syslin('c',A_dis,B_dis,C_dis);	//This	is	needed	for	simulaCon	in	general	
 sysdis_c_csim=syslin('c',A_dis,Bu_dis,C_dis);	//This	is	needed	for	the	csim
@@ -19,20 +18,28 @@ poles_s=[-3	-3];
 poles_z=exp(poles_s*h);disp(poles_z,"Feedback	system	poles	in	the	z	plane:")
 K=ppol(Fi,Gamau,poles_z);	disp(K,"Feedback	gains	k1	and	k2	for	the	regulator:")	
 tk=0:h:tf//Vector	of	Cme	instants	
-x0 =[1 1]';
-p_amp=0;
+x0 =[0 0]';
+p_amp=0.16224;
 tk_size=size(tk)	
 N=tk_size(2)	//Number	of	sampling	instants	in	simulaCon	
 p=p_amp*ones(1,N)											//Disturbance	
-//IniCal	values	
+teta_r_amp=0		//Step	reference	amplitude	or	ramp	slope	
+teta_r_type='step'	
 xk=x0
 encoder_resolution=960	
 tetamq=2*%pi/encoder_resolution
 xmk=x0
+ select teta_r_type
+    case 'step'	
+        teta_r=teta_r_amp*ones(1,N)		//Step	reference	
+    case 'ramp'	
+        teta_r=teta_r_amp*(0:h:tf)						//Ramp	reference	
+    end
 for	k=0:1:N-1	
     omegak=xk(1,1)	
     tetak=xk(2,1)	
-    if k==0 then
+    teta_r_k=teta_r(k+1)
+        if k==0 then
         tetamk=tetak
         omegamk=omegak
     else
@@ -57,7 +64,7 @@ omegamk=(tetamk-tetamkminus1)/h
 end
 xmk=[omegamk tetamk]'
     pk=p(k+1)	
-    uk=-K*xmk
+    uk=-K*xmk+K(2)*teta_r_k
     if	uk>u_sat_plus	then	uk=u_sat_plus	end	
     if	uk<u_sat_minus	then	uk=u_sat_minus	end	
     xkplus1=Fi_dis*xk+Gama_dis*[uk pk]'	

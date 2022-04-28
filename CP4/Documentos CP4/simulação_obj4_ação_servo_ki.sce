@@ -4,8 +4,7 @@ A	=	[-Bf/J-Km^2/(R*J)	0	;1	0]; B	=	[Km*Kw/(R*J)	1/J;	0	0];
 Bu	=	B(:,1)	//B	column	corresponding	to	command	
 C	=	[1	0;	0	1];		
 sys_c=syslin('c',A,B,C);
-tf=5													//Final	instant	of	simulaCon	
-x0=[1	0]'				//IniCal	state	
+tf=9													//Final	instant	of	simulaCon	
 A_dis=A;B_dis=B;Bu_dis=Bu;	C_dis=C	
 sysdis_c=syslin('c',A_dis,B_dis,C_dis);	//This	is	needed	for	simulaCon	in	general	
 sysdis_c_csim=syslin('c',A_dis,Bu_dis,C_dis);	//This	is	needed	for	the	csim
@@ -15,24 +14,37 @@ Gamau=Gama(:,1)	//Gama	column	for	the	command	input
 p_d=spec(Fi);
 sysdis_d=dscr(sysdis_c,h);Fi_dis=sysdis_d(2);Gama_dis=sysdis_d(3)	
 sysdis_c=syslin('c',A_dis,B_dis,C_dis);
-poles_s=[-3	-3];
+poles_s=[-3	-3 -3];
+disp(poles_s,'Equivalent	feedback	system	poles	in	the	s	plane	with	integral	cCon:')
 poles_z=exp(poles_s*h);disp(poles_z,"Feedback	system	poles	in	the	z	plane:")
-K=ppol(Fi,Gamau,poles_z);	disp(K,"Feedback	gains	k1	and	k2	for	the	regulator:")	
+Fi_a=[Fi	[0	0]';0	-h	1]	
+Gamau_a=[Gamau;0]	
+K=ppol(Fi_a,Gamau_a,poles_z)	
+disp(K,'Feedback	gains	k1	and	k2	for	the	regulator	with	integral	acCon:')	
 tk=0:h:tf//Vector	of	Cme	instants	
-x0 =[1 1]';
-p_amp=0;
+x0 =[0 0]';
+p_amp=0.16224;
 tk_size=size(tk)	
 N=tk_size(2)	//Number	of	sampling	instants	in	simulaCon	
 p=p_amp*ones(1,N)											//Disturbance	
-//IniCal	values	
+teta_r_amp=0		//Step	reference	amplitude	or	ramp	slope	
+teta_r_type='step'	
 xk=x0
+esumk=0	
 encoder_resolution=960	
 tetamq=2*%pi/encoder_resolution
 xmk=x0
+ select teta_r_type
+    case 'step'	
+        teta_r=teta_r_amp*ones(1,N)		//Step	reference	
+    case 'ramp'	
+        teta_r=teta_r_amp*(0:h:tf)						//Ramp	reference	
+    end
 for	k=0:1:N-1	
     omegak=xk(1,1)	
     tetak=xk(2,1)	
-    if k==0 then
+    teta_r_k=teta_r(k+1)
+        if k==0 then
         tetamk=tetak
         omegamk=omegak
     else
@@ -57,14 +69,22 @@ omegamk=(tetamk-tetamkminus1)/h
 end
 xmk=[omegamk tetamk]'
     pk=p(k+1)	
-    uk=-K*xmk
-    if	uk>u_sat_plus	then	uk=u_sat_plus	end	
-    if	uk<u_sat_minus	then	uk=u_sat_minus	end	
+    ek=teta_r_k-tetamk
+    uk=-K(1)*omegamk+K(2)*ek-K(3)*esumk
+    esumkplus1=esumk+h*ek
+    if	uk>u_sat_plus	then		
+        uk=u_sat_plus
+        esumkplus1=esumk	end	//Do	not	integrate	if	command	saturated	
+     if	uk<u_sat_minus	then		
+		uk=u_sat_minus		
+        esumkplus1=esumk	end	//Do	not	integrate	if	command	saturated
     xkplus1=Fi_dis*xk+Gama_dis*[uk pk]'	
+    esum(:,k+1)=esumk
     u(1,k+1)=uk
     x(:,k+1)=xk
     xm(:,k+1)=xmk
     xk=xkplus1	
+    esumk=esumkplus1	
 end
 i=x(1,:); //velocidade
 i=(u-(Km*i))/R;
