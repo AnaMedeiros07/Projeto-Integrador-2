@@ -36,6 +36,7 @@ extern float output_wave[51];
 extern float Velocity_Buffer[256];
 extern float Position_Buffer[256];
 extern int index_count;
+extern float duty_cycle;
 /*___________________________*/
 
 /*_________Functions_________*/
@@ -49,7 +50,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim);
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2);
 void Reset();
 void direction();
-void Control();
 void Velocity_Mesure();
 void Position_Mesure();
 _Bool Get_Constants(uint8_t *buffer1);

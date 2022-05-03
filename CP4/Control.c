@@ -14,7 +14,7 @@
 /*________Variables_________*/
 #define U_sat_a  1
 #define U_sat_b -1
-
+#define n 15
 _Bool Output;
 _Bool Mode = 0;
 
@@ -40,10 +40,11 @@ float period=0;
 float ref_position=0;
 float Velocity_Buffer[256] = {0.0};
 float Position_Buffer[256]={0.0};
-
+float old_speed_medio[n] = {0.0};
+float speed_medio = 0.0;
 int index_output_wave = 0;
 int index_count = 0;
-
+float duty_cycle=0;
 /*__________________________*/
 
 void clean_string_array(char string_array[6][6]){
@@ -302,28 +303,74 @@ _Bool Reference_Position(uint8_t *buffer1){
 	}
 
 	ref_position  = atoi(string_array[row_number]);
+	ref_position=((ref_position*2*M_PI)/360.0);
 	if(ref_position >= 720 || ref_position <= 0){
 		Write_Tx_Buffer("Valores fora dos limites!! Posicao > 720 ou <0", 0);
 	}
 
 	return 1;
 }
-
-void Control()
+float Check_Position(int pulses)
 {
-
-	 Kp_h=KP;
-	 Ki_h=(float)(KI*period);
-	 Kd_h=(float)((KD*(1-a))/period);
-	 e=yr-y;
+	static first=1;
+	float position=0,output_position=0,position_ant=0,Qhigh=0,Qlow=0,output_position_ant=0;
+	position=(pulses*2*M_PI)/960.0 + position;
+	if(position<-((720*2*M_PI)/360.0))
+		position=-((720*2*M_PI)/360.0);
+	else if(position>((720*2*M_PI)/360.0))
+		position=((720*2*M_PI)/360.0);
+	if(first)
+		output_position=position;
+	else
+	{
+		position_ant=position;
+		output_position_ant=output_position;
+		if(fmod(position,(2*M_PI/360.0))==0)
+			output_position=position;
+		else
+		{
+			Qhigh=ceil(position/(2*M_PI/960.0)*(2*M_PI/960.0));
+			Qlow=floor(position/(2*M_PI/960.0)*(2*M_PI/960.0));
+			if(Qlow<position_ant && position_ant<Qhigh)
+				output_position=position_ant;
+			else
+				if(position>position_ant)
+					output_position=Qlow;
+				else
+					output_position=Qhigh;
+		}
+		first=0;
+	}
+	return output_position;
+}
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
+	if(htim == &htim3){
+		static float speed_avg=0;
+		static float sum_speed=0.0;
+		static int index = 0;
+		static float Position=0;
+		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+		float Velocity=0;
+			Velocity= (pulses*2*M_PI/960.0)*(1/period);
+			sum_speed=sum_speed +Velocity- old_speed_medio[index];
+			old_speed_medio[index]=Velocity;
+			speed_avg=(float)sum_speed/n;
+			++index;
+			if(index == n)
+				index=0;
+			 Kp_h=KP;
+			 Ki_h=(float)(KI*period);
+			 Kd_h=(float)((KD*(1-a))/period);
+			 Position = Check_Position(pulses);
+			 e=ref_position -Position;
 			if (Mode == Automatic)
 			{
 				sum_e_bkp=sum_e;
 				sum_e=sum_e+e_ant;
-				u_d=Kd_h*(y-y_ant)+a*u_d_ant;
+				u_d=Kd_h*(Position-y_ant)+a*u_d_ant;
 				u=Kp_h*e+Ki_h*sum_e-u_d;
 				e_ant=e;
-				y_ant=y;
+				y_ant=Position;
 				u_d_ant=u_d;
 			if(u>U_sat_a)
 			{
@@ -335,52 +382,20 @@ void Control()
 				u=U_sat_b;
 				sum_e=sum_e_bkp;
 			}
-				output_wave[index_output_wave]=u;
-				++index_output_wave;
 			}
 			else
 			{
 				y_ant=y;
 				e_ant=e;
-				if(index_output_wave==51)
-					index_output_wave=0;
 			}
-}
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
-	if(htim == &htim3){
-		float position=0;
-		float Velocity=0;
-		if((Sample_K == 1) && (K_value != 0))
-		{
-			K_value--;
-			position=(pulses*960)/2*M_PI;
-			Velocity= (float)(2*M_PI/960)*pulses*(float)(1/period);
-
-			Position_Buffer[index_count]=position*(float)Direction;
-			Velocity_Buffer[index_count]=Velocity*(float)Direction;
-
-			++index_count;
-			index_count &= ~(1<<7);
-			pulses = 0;
-			Output = 1;
-
-		}
-		else if((Sample_K == 1) && (K_value == 0))
-			Stop();
-		else
-		{
-			position=(pulses*960)/2*M_PI;
-			Velocity= (float)(2*M_PI/960)*pulses*(float)(1/period);
-
-			Position_Buffer[index_count]=position*(float)Direction;
-			Velocity_Buffer[index_count]=Velocity*(float)Direction;
+			duty_cycle=(u*100.0)/6.0;
+			Change_Duty();
+			Position_Buffer[index_count]=Position*(float)Direction;
+			Velocity_Buffer[index_count]=speed_avg*(float)Direction;
 			++index_count;
 			index_count&= ~(1<<7);
 			pulses = 0;
 			Output = 1;
-		}
-
 	}
 }
 
@@ -396,7 +411,6 @@ void direction() //PA6 = sensor B
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){  // ISR_H
 	if(htim2->Channel == HAL_TIM_ACTIVE_CHANNEL_3){
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
 		pulses++;
 		direction();
 
