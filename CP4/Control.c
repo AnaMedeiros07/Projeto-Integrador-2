@@ -9,6 +9,8 @@
 
 /*_________Defines__________*/
 #define b 0x20
+#define angulo_radianos (2*M_PI)/960.0
+#define angulo_graus (2*M_PI)/360.0
 /*__________________________*/
 
 /*________Variables_________*/
@@ -45,6 +47,7 @@ float speed_medio = 0.0;
 int index_output_wave = 0;
 int index_count = 0;
 float duty_cycle=0;
+float Position=0;
 /*__________________________*/
 
 void clean_string_array(char string_array[6][6]){
@@ -226,7 +229,6 @@ void Reset()
 	u=0;
 	sum_e_bkp=0;
 	e_ant=0;
-	y_ant=0;
 	index_count=0;
 
 	for(index = 0; index <=255;index++)
@@ -303,42 +305,36 @@ _Bool Reference_Position(uint8_t *buffer1){
 	}
 
 	ref_position  = atoi(string_array[row_number]);
-	ref_position=((ref_position*2*M_PI)/360.0);
-	if(ref_position >= 720 || ref_position <= 0){
-		Write_Tx_Buffer("Valores fora dos limites!! Posicao > 720 ou <0", 0);
+	ref_position=ref_position*angulo_graus;
+	ref_position +=y_ant;
+	if(ref_position >= 12.57 || ref_position <= -12.57){
+		Write_Tx_Buffer("Valores fora dos limites!! Posicao > 720 ou <-720", 0);
 	}
+
 
 	return 1;
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
 	if(htim == &htim3){
-		static float speed_avg=0;
-		static float sum_speed=0.0;
-		static int index = 0;
-		static float Position=0;
-		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+		static float position=0.0;
 		float Velocity=0;
-			Velocity= (pulses*2*M_PI/960.0)*(1/period);
-			sum_speed=sum_speed +Velocity- old_speed_medio[index];
-			old_speed_medio[index]=Velocity;
-			speed_avg=(float)sum_speed/n;
-			++index;
-			if(index == n)
-				index=0;
-			 Kp_h=KP;
-			 Ki_h=(float)(KI*period);
-			 Kd_h=(float)((KD*(1-a))/period);
-			 Position =((pulses*2*M_PI)/960.0)+ Position;
-			 e=ref_position -Position;
+
+			position =(pulses* angulos_radianos*Direction);
+			Velocity=Velocity_Calculation(pulses);
+			Kp_h=KP;
+			Ki_h=(float)(KI*period);
+			Kd_h=(float)((KD*(1-a))/period);
+
+			e=ref_position - (position + y_ant);
 			if (Mode == Automatic)
 			{
 				sum_e_bkp=sum_e;
 				sum_e=sum_e+e_ant;
-				u_d=Kd_h*(Position-y_ant)+a*u_d_ant;
+				u_d=Kd_h*(position-y_ant)+a*u_d_ant;
 				u=Kp_h*e+Ki_h*sum_e-u_d;
 				e_ant=e;
-				y_ant=Position;
+				y_ant=position;
 				u_d_ant=u_d;
 			if(u>U_sat_a)
 			{
@@ -353,18 +349,35 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
 			}
 			else
 			{
-				y_ant=y;
+				y_ant=position;
 				e_ant=e;
 			}
 			duty_cycle=(u*100.0)/U_sat_a;
 			Change_Duty();
-			Position_Buffer[index_count]=Position*(float)Direction;
+			Position_Buffer[index_count]=position*(float)Direction;
 			Velocity_Buffer[index_count]=speed_avg*(float)Direction;
 			++index_count;
 			index_count&= ~(1<<7);
 			pulses = 0;
 			Output = 1;
 	}
+}
+
+float Velocity_Calculation(int pulses){
+	static float speed_avg=0;
+	static float sum_speed=0.0;
+	static int index = 0;
+
+	Velocity= (pulses*angulos_radianos)*(1/period);
+	sum_speed=sum_speed +Velocity- old_speed_medio[index];
+	old_speed_medio[index]=Velocity;
+	speed_avg=(float)sum_speed/n;
+	index++;
+
+	if(index == n)
+		index = 0;
+
+	return speed_avg;
 }
 
 void direction() //PA6 = sensor A

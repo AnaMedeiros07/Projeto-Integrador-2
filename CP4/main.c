@@ -87,9 +87,9 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
-  MX_TIM4_Init();
   MX_TIM3_Init();
   MX_TIM2_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
 	long int period = 65535/(0.001);
 	long int prescaler = (108000000/period);
@@ -99,8 +99,6 @@ int main(void)
 	int counter_array=-1;
 	int index_total=0;
 
-int counter_array=-1;
-int index_total=0;
 init_UART3();
 receive_flag = 0;
 prompt_flag = 1;

@@ -22,10 +22,7 @@ void DeInit_PWM_Control (){
 	duty_cycle = 0;
 	Change_Duty();
 	HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_1);
-
 	HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_2);
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 0);
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3, 0);
 }
 
 _Bool Normalized_Tension(uint8_t *buffer1){
@@ -56,20 +53,23 @@ _Bool Change_Duty(){
 
 		if((duty_cycle >= -100) && (duty_cycle < 0)){
 			Direction = Anti_Clock;
+			HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_1);
+			HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_2);
 			float duty = (float)(duty_cycle*(-1))/100;
 			htim4.Instance->CCR2 = duty*(htim4.Instance->ARR);
 			htim4.Instance->CCR1 =0;
 			HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_2);
-			HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_1);
+
 			return_flag = 1;
 		}
 		else if((duty_cycle >= 0) && (duty_cycle <= 100)){
 			Direction = Clock;
+			HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_2);
+			HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_1);
 			float duty = (float)duty_cycle/100;
 			htim4.Instance->CCR1 = duty*(htim4.Instance->ARR);
 			htim4.Instance->CCR2 =0;
 			HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_1);
-			HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_2);
 			return_flag = 1;
 		}
 		else

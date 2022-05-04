@@ -163,6 +163,8 @@ _Bool Stop(){
 
 	HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_3);
 	HAL_TIM_Base_Stop_IT(&htim3);
+	duty_cycle = 0;
+	DeInit_PWM_Control();
 	stop = 1;
 
 	return 1;
