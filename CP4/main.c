@@ -71,8 +71,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-
-	HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -92,12 +91,13 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  long int period = 65535/(0.5);
-  long int prescaler = (108000000/period);
-  long int autoreload = ((108000000*0.5)/(prescaler+1))-1;
-  htim4.Instance->PSC = prescaler;
-  htim4.Instance->ARR = autoreload;
-  htim4.Instance->CCR1 = 0.5*(htim4.Instance->ARR);
+	long int period = 65535/(0.001);
+	long int prescaler = (108000000/period);
+	long int autoreload = ((108000000*0.001)/(prescaler+1))-1;
+	htim4.Instance->PSC = prescaler;
+	htim4.Instance->ARR = autoreload;
+	int counter_array=-1;
+	int index_total=0;
 
 int counter_array=-1;
 int index_total=0;
@@ -255,3 +255,4 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
+
