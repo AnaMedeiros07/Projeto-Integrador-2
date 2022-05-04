@@ -12,8 +12,8 @@
 /*__________________________*/
 
 /*________Variables_________*/
-#define U_sat_a  1
-#define U_sat_b -1
+#define U_sat_a  6
+#define U_sat_b -6
 #define n 15
 _Bool Output;
 _Bool Mode = 0;
@@ -310,39 +310,7 @@ _Bool Reference_Position(uint8_t *buffer1){
 
 	return 1;
 }
-float Check_Position(int pulses)
-{
-	static first=1;
-	float position=0,output_position=0,position_ant=0,Qhigh=0,Qlow=0,output_position_ant=0;
-	position=(pulses*2*M_PI)/960.0 + position;
-	if(position<-((720*2*M_PI)/360.0))
-		position=-((720*2*M_PI)/360.0);
-	else if(position>((720*2*M_PI)/360.0))
-		position=((720*2*M_PI)/360.0);
-	if(first)
-		output_position=position;
-	else
-	{
-		position_ant=position;
-		output_position_ant=output_position;
-		if(fmod(position,(2*M_PI/360.0))==0)
-			output_position=position;
-		else
-		{
-			Qhigh=ceil(position/(2*M_PI/960.0)*(2*M_PI/960.0));
-			Qlow=floor(position/(2*M_PI/960.0)*(2*M_PI/960.0));
-			if(Qlow<position_ant && position_ant<Qhigh)
-				output_position=position_ant;
-			else
-				if(position>position_ant)
-					output_position=Qlow;
-				else
-					output_position=Qhigh;
-		}
-		first=0;
-	}
-	return output_position;
-}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
 	if(htim == &htim3){
 		static float speed_avg=0;
@@ -361,7 +329,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
 			 Kp_h=KP;
 			 Ki_h=(float)(KI*period);
 			 Kd_h=(float)((KD*(1-a))/period);
-			 Position = Check_Position(pulses);
+			 Position =((pulses*2*M_PI)/960.0)+ Position;
 			 e=ref_position -Position;
 			if (Mode == Automatic)
 			{
@@ -388,7 +356,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
 				y_ant=y;
 				e_ant=e;
 			}
-			duty_cycle=(u*100.0)/6.0;
+			duty_cycle=(u*100.0)/U_sat_a;
 			Change_Duty();
 			Position_Buffer[index_count]=Position*(float)Direction;
 			Velocity_Buffer[index_count]=speed_avg*(float)Direction;
@@ -399,14 +367,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){ // ISR_S
 	}
 }
 
-void direction() //PA6 = sensor B
+void direction() //PA6 = sensor A
 {
 	if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6)==0)
 	{
-		Direction=Clock;
+		Direction=Anti_Clock;
 	}
 	else
-		Direction=Anti_Clock;
+		Direction=Clock;
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim2){  // ISR_H

@@ -62,6 +62,7 @@ _Bool Check_Comand(uint8_t *buffer){
 					break;
 				default: return_variable = (*fun_ptr_arr1[0])(); break;
 			}
+			break;
 		case 'E':
 		case 'e':
 			switch(buffer[1]){
