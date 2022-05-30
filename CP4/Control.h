@@ -52,6 +52,7 @@ void Reset();
 void direction();
 void Velocity_Mesure();
 void Position_Mesure();
+float Velocity_Calculation(int pulses);
 _Bool Get_Constants(uint8_t *buffer1);
 
 /*___________________________*/

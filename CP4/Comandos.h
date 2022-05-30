@@ -31,7 +31,7 @@ extern _Bool valid;
 extern _Bool Sample_K;
 extern _Bool stop;
 extern _Bool start;
-extern _Bool Direction;
+extern int Direction;
 
 extern int K_value;
 /*___________________________*/

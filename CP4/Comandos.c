@@ -15,7 +15,7 @@ _Bool valid;
 _Bool Sample_K;
 _Bool stop;
 _Bool start;
-_Bool Direction;
+int Direction;
 
 _Bool (*fun_ptr_arr[])(uint8_t*) = {Sampling_Time, Start, Operation_Mode,Get_Constants,Reference_Position,Enable};
 _Bool (*fun_ptr_arr1[])() = {Invalid, Stop};
