@@ -15,4 +15,4 @@ Evaluation of an Angular Position Digital Control System
 Automation of a cutting machine
 
 # Authors
-Ana Martins e In
+Ana Martins e Inês Costa
