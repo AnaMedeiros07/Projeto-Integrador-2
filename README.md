@@ -1,6 +1,7 @@
 # Projeto Integrador em Engenharia Eletrónica Industrial e Computadores
 
-- Work developed for the subject Projeto Integrador em Engenharia Eletrónica Industrial e Computadores                                                      - Code for STM32 
+- Work developed for the subject Projeto Integrador em Engenharia Eletrónica Industrial e Computadores                                                     
+- Code for STM32 
 
 ## CP1
 ## CP2
