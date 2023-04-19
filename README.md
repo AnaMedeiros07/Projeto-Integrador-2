@@ -4,12 +4,12 @@
 - Code for STM32 
 
 ## CP1
-Interface de Utilizador com Placa de Microcontrolador
+User Interface with the microcontroller
 ## CP2
-Aquisição e Filtragem Digital de Sinais Analógicos
+Acquisition and Digital Filtering of Analog Signals
 ## CP3
-Atuação de um Motor CC (PWM)
+Actuation of a DC Motor (PWM)
 ## CP4
-Avaliação de um Sistema de Controlo Digital de Posição Angular
+Evaluation of an Angular Position Digital Control System
 ## CP5
-Automação de uma máquina de corte
+Automation of a cutting machine
