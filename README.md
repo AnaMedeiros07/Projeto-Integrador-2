@@ -13,3 +13,6 @@ Actuation of a DC Motor (PWM)
 Evaluation of an Angular Position Digital Control System
 ## CP5
 Automation of a cutting machine
+
+# Authors
+Ana Martins e In
